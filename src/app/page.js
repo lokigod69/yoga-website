@@ -69,7 +69,8 @@ export default function Home() {
   const [emailError, setEmailError] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [currentLetterIndex, setCurrentLetterIndex] = React.useState(0);
-  const text = "Consciousness and unseen forces guiding us";
+  const [text1, setText1] = React.useState("Consciousness and unseen forces");
+  const [text2, setText2] = React.useState("guiding us");
   const [dateError, setDateError] = React.useState(false);
   const [timeError, setTimeError] = React.useState(false);
 
@@ -169,7 +170,7 @@ export default function Home() {
 
   React.useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentLetterIndex((prev) => (prev + 1) % (text.length));
+      setCurrentLetterIndex((prev) => (prev + 1) % (text1.length + text2.length));
     }, 100); // Speed of animation
     
     return () => clearInterval(interval);
@@ -201,23 +202,41 @@ export default function Home() {
             className="p-6"
           >
             <h1 className="text-4xl md:text-6xl font-playfair mb-4">Find Your Yoga Serenity</h1>
-            <div className="h-16 md:h-12 mb-8"> {/* Increased height for mobile */}
-              <p className="text-xl md:text-3xl font-playfair">
-                {text.split('').map((letter, index) => (
-                  <motion.span
-                    key={index}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ 
-                      opacity: Math.abs(Math.sin((currentLetterIndex - index) * 0.3)), 
-                      y: Math.sin((currentLetterIndex - index) * 0.3) * 10 
-                    }}
-                    transition={{ duration: 0.5, ease: "easeInOut" }}
-                    className="inline-block"
-                  >
-                    {letter === ' ' ? '\u00A0' : letter}
-                  </motion.span>
-                ))}
-              </p>
+            <div className="h-24 md:h-16 mb-8"> {/* Increased height for mobile */}
+              <div className="text-xl md:text-3xl font-playfair">
+                <p className="mb-2">
+                  {text1.split('').map((letter, index) => (
+                    <motion.span
+                      key={index}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ 
+                        opacity: Math.abs(Math.sin((currentLetterIndex - index) * 0.3)), 
+                        y: Math.sin((currentLetterIndex - index) * 0.3) * 10 
+                      }}
+                      transition={{ duration: 0.5, ease: "easeInOut" }}
+                      className="inline-block"
+                    >
+                      {letter === ' ' ? '\u00A0' : letter}
+                    </motion.span>
+                  ))}
+                </p>
+                <p>
+                  {text2.split('').map((letter, index) => (
+                    <motion.span
+                      key={index + text1.length}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ 
+                        opacity: Math.abs(Math.sin((currentLetterIndex - index - text1.length) * 0.3)), 
+                        y: Math.sin((currentLetterIndex - index - text1.length) * 0.3) * 10 
+                      }}
+                      transition={{ duration: 0.5, ease: "easeInOut" }}
+                      className="inline-block"
+                    >
+                      {letter === ' ' ? '\u00A0' : letter}
+                    </motion.span>
+                  ))}
+                </p>
+              </div>
             </div>
             <p className="text-lg md:text-xl mb-8">Join us for transformative classes and inner peace.</p>
             <button 
@@ -364,7 +383,7 @@ export default function Home() {
             transition={{ duration: 0.8 }}
             className="text-3xl font-playfair text-center mb-8"
           >
-            Book a Drop-in Session
+            Book Your Session
           </motion.h2>
           <form onSubmit={handleBookingSubmit} className="max-w-md mx-auto">
             <div className="relative mb-4">
@@ -514,6 +533,31 @@ export default function Home() {
               )}
             </button>
           </form>
+          
+          {/* Success message */}
+          <AnimatePresence>
+            {showBookingQuote && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.5 }}
+                className="mt-8 p-6 bg-white rounded-lg shadow-lg max-w-md mx-auto text-center"
+              >
+                <svg className="w-16 h-16 mx-auto mb-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <h3 className="text-xl font-playfair mb-2">Booking Confirmed!</h3>
+                <p className="mb-4">{getDailyQuote(startDate)}</p>
+                <button 
+                  onClick={() => setShowBookingQuote(false)} 
+                  className="bg-royal-purple text-white px-4 py-2 rounded-full hover:bg-lilac transition duration-300"
+                >
+                  Close
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </section>
 
