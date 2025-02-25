@@ -1,15 +1,17 @@
 /** @type {import('tailwindcss').Config} */
-export default {
+module.exports = {
   content: [
-    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    './src/app/**/*.{js,jsx}', // Scan JS/JSX files in src/app/
+    './app/**/*.{js,jsx}', // Scan App Router files (if any outside src/)
   ],
   theme: {
     extend: {
       colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
+        'jet-black': '#1E1E2F',
+        'cultured': '#F5F4F0',
+        'timberwolf': '#D9CFCC',
+        'lilac': '#D5B9D2',
+        'royal-purple': '#8F7A98',
       },
     },
   },
