@@ -201,28 +201,27 @@ export default function Home() {
             className="p-6"
           >
             <h1 className="text-4xl md:text-6xl font-playfair mb-4">Find Your Yoga Serenity</h1>
-            <p className="text-2xl md:text-3xl mb-4 font-playfair h-8">
-              {text.split('').map((letter, index) => (
-                <motion.span
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ 
-                    opacity: Math.abs(Math.sin((currentLetterIndex - index) * 0.3)),
-                    y: Math.sin((currentLetterIndex - index) * 0.3) * 10
-                  }}
-                  transition={{
-                    duration: 0.5,
-                    ease: "easeInOut"
-                  }}
-                  className="inline-block"
-                >
-                  {letter === ' ' ? '\u00A0' : letter}
-                </motion.span>
-              ))}
-            </p>
-            <p className="text-lg md:text-xl mb-6">Join us for transformative classes and inner peace.</p>
+            <div className="h-16 md:h-12 mb-8"> {/* Increased height for mobile */}
+              <p className="text-xl md:text-3xl font-playfair">
+                {text.split('').map((letter, index) => (
+                  <motion.span
+                    key={index}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ 
+                      opacity: Math.abs(Math.sin((currentLetterIndex - index) * 0.3)), 
+                      y: Math.sin((currentLetterIndex - index) * 0.3) * 10 
+                    }}
+                    transition={{ duration: 0.5, ease: "easeInOut" }}
+                    className="inline-block"
+                  >
+                    {letter === ' ' ? '\u00A0' : letter}
+                  </motion.span>
+                ))}
+              </p>
+            </div>
+            <p className="text-lg md:text-xl mb-8">Join us for transformative classes and inner peace.</p>
             <button 
-              onClick={() => document.getElementById('booking-section').scrollIntoView({ behavior: 'smooth' })}
+              onClick={() => document.getElementById('booking-section').scrollIntoView({ behavior: 'smooth' })} 
               className="bg-royal-purple text-white px-6 py-3 rounded-full hover:bg-lilac transition duration-300"
             >
               Book Now
@@ -442,6 +441,7 @@ export default function Home() {
                 placeholderText="Select a date"
                 calendarClassName="bg-white shadow-lg rounded-lg"
                 showPopperArrow={false}
+                wrapperClassName="w-full" /* Added wrapper class for full width */
               />
               <AnimatePresence>
                 {dateError && (
@@ -592,7 +592,7 @@ export default function Home() {
                   options={{
                     fullscreenControl: true,
                     streetViewControl: true,
-                    mapTypeControl: true,
+                    mapTypeControl: false,
                     zoomControl: true
                   }}
                 >
@@ -604,13 +604,13 @@ export default function Home() {
               </LoadScript>
             </div>
             <div className="text-center mt-4">
-              <p className="font-medium text-royal-purple mb-1 underline">Location</p>
+              <p className="font-medium text-royal-purple mb-1">Location:</p>
               <p className="text-gray-600">
                 <a 
                   href="https://www.google.com/maps?q=9.599838172037055,123.84258350000093" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="hover:text-royal-purple transition-colors duration-300"
+                  className="hover:text-royal-purple transition-colors duration-300 underline"
                 >
                   Eagles Nest, JR2V+2HM, Dauis, Bohol, Philippines
                 </a>
