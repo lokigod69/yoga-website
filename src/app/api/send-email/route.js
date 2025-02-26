@@ -15,7 +15,7 @@ const transporter = nodemailer.createTransport({
 export async function POST(request) {
   try {
     const data = await request.json();
-    const { name, email, date, time } = data;
+    const { name, email, date, time, numberOfPeople } = data;
 
     // Format the date
     const bookingDate = new Date(date);
@@ -29,7 +29,7 @@ export async function POST(request) {
     // Email to studio owner
     const mailOptions = {
       from: process.env.EMAIL_USER,
-      to: process.env.STUDIO_EMAIL, // The studio's email address
+      to: process.env.STUDIO_EMAIL,
       subject: 'New Yoga Class Booking',
       html: `
         <h2>New Booking Request</h2>
@@ -37,6 +37,7 @@ export async function POST(request) {
         <p><strong>Student Email:</strong> ${email}</p>
         <p><strong>Date:</strong> ${formattedDate}</p>
         <p><strong>Time:</strong> ${time}</p>
+        <p><strong>Number of People:</strong> ${numberOfPeople}</p>
       `,
     };
 
@@ -44,22 +45,24 @@ export async function POST(request) {
     const confirmationMailOptions = {
       from: process.env.EMAIL_USER,
       to: email,
-      subject: 'Your Yoga Class Booking Confirmation',
+      subject: 'Yoga Class Booking Confirmation',
       html: `
-        <h2>Booking Confirmation</h2>
-        <p>Dear ${name},</p>
-        <p>Thank you for booking a yoga class with us. Here are your booking details:</p>
+        <h2>Yoga Class Booking Confirmation</h2>
+        <p>Hello,</p>
+        <p>Thank you for booking with us. Here are your booking details:</p>
         <p><strong>Date:</strong> ${formattedDate}</p>
-        <p><strong>Time:</strong> ${time}</p>
-        <p>Please arrive 10 minutes before your class starts. Don't forget to bring:</p>
-        <ul>
-          <li>Yoga mat (or you can rent one from us)</li>
-          <li>Water bottle</li>
-          <li>Comfortable clothing</li>
-        </ul>
-        <p>If you need to cancel or reschedule, please contact us at least 24 hours in advance.</p>
+        <p><strong>Time:</strong> ${time === 'morning' ? '10:00 AM' : '5:00 PM'}</p>
+        <p><strong>Location:</strong> Eagle Nest, Biking Dauis, Bohol</p>
+        <p><strong>Price:</strong> Php 350.00</p>
+        <p></p>
+        <p><strong>Name:</strong> ${name}</p>
+        <p><strong>Email:</strong> ${email}</p>
+        <p><strong>Number of People:</strong> ${numberOfPeople}</p>
+        <p></p>
+        <p>Yogarona has a flexible cancellation policy. Just let us know before class starts so we can offer the spot to someone else.</p>
+        <p></p>
         <p>We look forward to seeing you!</p>
-        <p>Namaste 🙏</p>
+        <p>Namaste</p>
       `,
     };
 

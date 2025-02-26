@@ -59,8 +59,9 @@ const center = {
 };
 
 export default function Home() {
-  const [startDate, setStartDate] = React.useState(new Date('2024-02-24'));
+  const [startDate, setStartDate] = React.useState(null);
   const [selectedTime, setSelectedTime] = React.useState('');
+  const [numberOfPeople, setNumberOfPeople] = React.useState('');
   const [showDateAnimation, setShowDateAnimation] = React.useState(false);
   const [showTimeAnimation, setShowTimeAnimation] = React.useState(false);
   const [currentTestimonial, setCurrentTestimonial] = React.useState(0);
@@ -73,6 +74,7 @@ export default function Home() {
   const [text2, setText2] = React.useState("guiding us");
   const [dateError, setDateError] = React.useState(false);
   const [timeError, setTimeError] = React.useState(false);
+  const [numberOfPeopleError, setNumberOfPeopleError] = React.useState(false);
 
   const isWeekday = (date) => {
     const day = date.getDay();
@@ -91,8 +93,10 @@ export default function Home() {
     setTimeout(() => setShowTimeAnimation(false), 2000);
   };
 
-  const getDailyQuote = (date = new Date()) => {
-    const day = date.getDay();
+  const getDailyQuote = (date) => {
+    // If date is null or undefined, use current date
+    const safeDate = date instanceof Date ? date : new Date();
+    const day = safeDate.getDay();
     // Sunday is 0, Monday is 1, etc.
     switch(day) {
       case 0: // Sunday
@@ -119,6 +123,7 @@ export default function Home() {
     if (field === 'email') setEmailError(false);
     if (field === 'date') setDateError(false);
     if (field === 'time') setTimeError(false);
+    if (field === 'numberOfPeople') setNumberOfPeopleError(false);
   };
 
   const handleBookingSubmit = async (e) => {
@@ -126,12 +131,14 @@ export default function Home() {
     const form = e.target;
     const name = form.elements.name.value;
     const email = form.elements.email.value;
+    const people = form.elements.numberOfPeople.value;
     
     // Reset all error states
     setNameError(false);
     setEmailError(false);
     setDateError(false);
     setTimeError(false);
+    setNumberOfPeopleError(false);
     
     // Validate all fields
     let hasError = false;
@@ -151,13 +158,47 @@ export default function Home() {
       setTimeError(true);
       hasError = true;
     }
+    if (!numberOfPeople) {
+      setNumberOfPeopleError(true);
+      hasError = true;
+    }
 
     // Only proceed if no errors
     if (!hasError) {
       setIsSubmitting(true);
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setIsSubmitting(false);
-      setShowBookingQuote(true);
+      try {
+        const response = await fetch('/api/send-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name,
+            email,
+            date: startDate.toISOString(),
+            time: selectedTime,
+            numberOfPeople: people
+          }),
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+          setShowBookingQuote(true);
+          // Optional: Reset form
+          form.reset();
+          setStartDate(null);
+          setSelectedTime('');
+          setNumberOfPeople('');
+        } else {
+          alert('Failed to submit booking. Please try again.');
+        }
+      } catch (error) {
+        console.error('Error submitting booking:', error);
+        alert('Failed to submit booking. Please try again.');
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -321,6 +362,7 @@ export default function Home() {
               <p className="text-2xl font-bold mb-4">Drop-in Sessions</p>
               <p className="text-xl mb-2">Monday to Saturday</p>
               <p className="text-lg mb-2">10:00 - 11:00 AM<br/>5:00 - 6:00 PM</p>
+              <p className="text-lg mb-2">@ 350 php</p>
             </motion.div>
 
             <motion.div
@@ -451,7 +493,7 @@ export default function Home() {
                   handleDateChange(date);
                   handleInputFocus('date');
                 }}
-                minDate={new Date('2024-02-24')}
+                minDate={new Date()}
                 filterDate={isWeekday}
                 dateFormat="MMMM d, yyyy"
                 className={`w-full p-3 rounded-lg border transition-colors ${
@@ -498,6 +540,44 @@ export default function Home() {
               </select>
               <AnimatePresence>
                 {timeError && (
+                  <motion.div
+                    initial={{ scale: 0, rotate: -180 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    className="absolute top-1/2 -right-12 transform -translate-y-1/2"
+                  >
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 2C12 2 14 6 14 8C14 9.1 13.1 10 12 10C10.9 10 10 9.1 10 8C10 6 12 2 12 2Z" fill="#FF69B4"/>
+                      <path d="M12 2C12 2 15 5 16 7C16.7 8.4 16.1 10 14.8 10.6C13.5 11.2 12 10.5 11.4 9.2C10.8 7.9 12 2 12 2Z" fill="#FF1493"/>
+                      <path d="M12 2C12 2 9 5 8 7C7.3 8.4 7.9 10 9.2 10.6C10.5 11.2 12 10.5 12.6 9.2C13.2 7.9 12 2 12 2Z" fill="#FF69B4"/>
+                      <path d="M12 2C12 2 16 7 17 9C17.7 10.4 17.1 12 15.8 12.6C14.5 13.2 13 12.5 12.4 11.2C11.8 9.9 12 2 12 2Z" fill="#FF1493"/>
+                      <path d="M12 2C12 2 8 7 7 9C6.3 10.4 6.9 12 8.2 12.6C9.5 13.2 11 12.5 11.6 11.2C12.2 9.9 12 2 12 2Z" fill="#FF69B4"/>
+                      <circle cx="12" cy="8" r="2" fill="#FFD700"/>
+                    </svg>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+            <div className="relative mb-4">
+              <select 
+                className={`w-full p-3 rounded-lg border transition-colors ${
+                  numberOfPeopleError ? 'border-red-400 border-2' : 'border-gray-300'
+                }`}
+                onChange={(e) => {
+                  setNumberOfPeople(e.target.value);
+                  handleInputFocus('numberOfPeople');
+                }}
+                value={numberOfPeople}
+                name="numberOfPeople"
+              >
+                <option value="">Number of People</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+              </select>
+              <AnimatePresence>
+                {numberOfPeopleError && (
                   <motion.div
                     initial={{ scale: 0, rotate: -180 }}
                     animate={{ scale: 1, rotate: 0 }}
@@ -573,23 +653,24 @@ export default function Home() {
             Stay Connected
           </motion.h2>
           <div className="flex justify-center gap-12">
-            <a href="https://instagram.com/asan_yogarona" className="hover:opacity-80 transition duration-300">
-              <svg className="w-12 h-12 mx-auto mb-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <linearGradient id="instagram-gradient" x1="0%" y1="100%" x2="100%" y2="0%">
-                  <stop offset="0%" style={{ stopColor: '#fdf497' }} />
-                  <stop offset="5%" style={{ stopColor: '#fdf497' }} />
-                  <stop offset="45%" style={{ stopColor: '#fd5949' }} />
-                  <stop offset="60%" style={{ stopColor: '#d6249f' }} />
-                  <stop offset="90%" style={{ stopColor: '#285AEB' }} />
-                </linearGradient>
-                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" 
-                fill="url(#instagram-gradient)"/>
+            <a href="https://instagram.com/yogaserene" className="hover:opacity-80 transition duration-300">
+              <svg className="w-12 h-12 mx-auto mb-2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <radialGradient id="instagram-gradient" cx="30%" cy="107%" r="150%">
+                    <stop offset="0%" stopColor="#fdf497"/>
+                    <stop offset="5%" stopColor="#fdf497"/>
+                    <stop offset="45%" stopColor="#fd5949"/>
+                    <stop offset="60%" stopColor="#d6249f"/>
+                    <stop offset="90%" stopColor="#285AEB"/>
+                  </radialGradient>
+                </defs>
+                <path fill="url(#instagram-gradient)" d="M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06l.045.03zm0 3.678c-3.405 0-6.162 2.76-6.162 6.162 0 3.405 2.76 6.162 6.162 6.162 3.405 0 6.162-2.76 6.162-6.162 0-3.405-2.76-6.162-6.162-6.162zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405c0 .795-.646 1.44-1.44 1.44-.795 0-1.44-.646-1.44-1.44 0-.794.646-1.439 1.44-1.439.793-.001 1.44.645 1.44 1.439z"/>
               </svg>
               <span className="block text-sm">Instagram</span>
             </a>
             <a href="https://facebook.com/yogaserene" className="hover:opacity-80 transition duration-300">
-              <svg className="w-12 h-12 mx-auto mb-2" viewBox="0 0 24 24" fill="#1877F2" xmlns="http://www.w3.org/2000/svg">
-                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+              <svg className="w-12 h-12 mx-auto mb-2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path fill="#1877F2" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
               </svg>
               <span className="block text-sm">Facebook</span>
             </a>
@@ -687,7 +768,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="py-8 bg-jet-black text-white text-center">
         <div className="container mx-auto px-4">
-          <p>© 2025 Yoga Serenity. All rights reserved.</p>
+          <p> 2025 Yoga Serenity. All rights reserved.</p>
         </div>
       </footer>
     </div>
