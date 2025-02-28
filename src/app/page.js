@@ -242,9 +242,6 @@ export default function Home() {
             transition={{ duration: 0.8 }}
             className="p-6"
           >
-            <div className="text-sm md:text-base mb-2">
-              {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-            </div>
             <h1 className="text-4xl md:text-6xl font-playfair mb-4">Find Your Yoga Serenity</h1>
             <div className="h-24 md:h-16 mb-8"> {/* Increased height for mobile */}
               <div className="text-xl md:text-3xl font-playfair">
@@ -536,6 +533,7 @@ export default function Home() {
                   handleInputFocus('time');
                 }}
                 value={selectedTime}
+                style={{ backgroundColor: 'transparent' }}
               >
                 <option value="">Select Time</option>
                 <option value="morning">10:00 - 11:00 AM</option>
@@ -571,6 +569,7 @@ export default function Home() {
                 }}
                 value={numberOfPeople}
                 name="numberOfPeople"
+                style={{ backgroundColor: 'transparent' }}
               >
                 <option value="">Number of People</option>
                 <option value="1">1</option>
