@@ -103,10 +103,52 @@ export default function Home() {
       const inputs = document.querySelectorAll('input, select');
       inputs.forEach(input => {
         input.addEventListener('touchend', (e) => {
-          e.preventDefault();
+          // Don't prevent default for date picker to allow it to open
+          if (!input.classList.contains('react-datepicker__input-container') && 
+              !input.classList.contains('react-datepicker-ignore-onclickoutside')) {
+            e.preventDefault();
+          }
           input.focus();
         }, { passive: false });
       });
+      
+      // Fix for date picker on mobile
+      const fixDatePickerOnMobile = () => {
+        const datePickerInput = document.querySelector('.react-datepicker__input-container input');
+        if (datePickerInput) {
+          // Make sure single tap works
+          datePickerInput.addEventListener('touchend', (e) => {
+            if (document.activeElement !== e.target) {
+              e.preventDefault();
+              e.target.focus();
+            }
+          }, { passive: false });
+          
+          // Ensure date picker closes when a date is selected
+          const datePickerContainer = document.querySelector('.react-datepicker');
+          if (datePickerContainer) {
+            datePickerContainer.addEventListener('touchend', (e) => {
+              if (e.target.classList.contains('react-datepicker__day--selected') || 
+                  e.target.classList.contains('react-datepicker__day')) {
+                setTimeout(() => {
+                  datePickerInput.blur();
+                }, 100);
+              }
+            }, { passive: true });
+          }
+        }
+      };
+      
+      // Run the fix after a short delay to ensure the date picker is rendered
+      setTimeout(fixDatePickerOnMobile, 1000);
+      
+      // Also run it when the date picker is opened
+      const dateInput = document.querySelector('.react-datepicker-wrapper input');
+      if (dateInput) {
+        dateInput.addEventListener('focus', () => {
+          setTimeout(fixDatePickerOnMobile, 300);
+        });
+      }
     }
     
     return () => {
@@ -132,7 +174,7 @@ export default function Home() {
     
     // On mobile, ensure the date picker closes and focus moves to the next field
     if (isMobile && date) {
-      // Close the date picker
+      // Close the date picker by blurring the input
       document.activeElement.blur();
       
       // Find the time select element and focus it after a short delay
@@ -142,6 +184,11 @@ export default function Home() {
           timeSelect.focus();
         }
       }, 300);
+    }
+    
+    // Clear date error if a date is selected
+    if (date) {
+      setDateError(false);
     }
   };
 
@@ -219,6 +266,28 @@ export default function Home() {
     if (!numberOfPeople) {
       setNumberOfPeopleError(true);
       hasError = true;
+    }
+
+    // Scroll to the first error field on mobile
+    if (hasError && isMobile) {
+      const errorFields = [
+        { error: nameError, selector: 'input[name="name"]' },
+        { error: emailError, selector: 'input[name="email"]' },
+        { error: dateError, selector: '.react-datepicker-wrapper input' },
+        { error: timeError, selector: 'select[value="' + selectedTime + '"]' },
+        { error: numberOfPeopleError, selector: 'select[name="numberOfPeople"]' }
+      ];
+      
+      for (const field of errorFields) {
+        if (field.error) {
+          const element = document.querySelector(field.selector);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setTimeout(() => element.focus(), 500);
+            break;
+          }
+        }
+      }
     }
 
     // Only proceed if no errors
@@ -576,10 +645,23 @@ export default function Home() {
                   }
                 }}
                 popperProps={{
-                  positionFixed: true
+                  positionFixed: true,
+                  modifiers: {
+                    preventOverflow: {
+                      enabled: true,
+                      escapeWithReference: false,
+                      boundariesElement: 'viewport'
+                    }
+                  }
                 }}
                 shouldCloseOnSelect={true}
                 disabledKeyboardNavigation={false}
+                onClickOutside={() => {
+                  // Force close on mobile
+                  if (isMobile) {
+                    document.activeElement.blur();
+                  }
+                }}
               />
               <AnimatePresence>
                 {dateError && (
