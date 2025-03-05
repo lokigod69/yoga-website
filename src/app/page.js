@@ -75,6 +75,50 @@ export default function Home() {
   const [dateError, setDateError] = React.useState(false);
   const [timeError, setTimeError] = React.useState(false);
   const [numberOfPeopleError, setNumberOfPeopleError] = React.useState(false);
+  const [isMobile, setIsMobile] = React.useState(false);
+
+  // Detect mobile devices
+  React.useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    // Initial check
+    checkMobile();
+    
+    // Add event listener for window resize
+    window.addEventListener('resize', checkMobile);
+    
+    // Clean up
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Add touch-specific event handlers for mobile devices
+  React.useEffect(() => {
+    if (isMobile) {
+      // Add passive touch listeners to improve performance
+      document.addEventListener('touchstart', () => {}, { passive: true });
+      
+      // Fix for iOS devices where focus is not properly triggered
+      const inputs = document.querySelectorAll('input, select');
+      inputs.forEach(input => {
+        input.addEventListener('touchend', (e) => {
+          e.preventDefault();
+          input.focus();
+        }, { passive: false });
+      });
+    }
+    
+    return () => {
+      if (isMobile) {
+        document.removeEventListener('touchstart', () => {});
+        const inputs = document.querySelectorAll('input, select');
+        inputs.forEach(input => {
+          input.removeEventListener('touchend', () => {});
+        });
+      }
+    };
+  }, [isMobile]);
 
   const isWeekday = (date) => {
     const day = date.getDay();
@@ -85,6 +129,20 @@ export default function Home() {
     setStartDate(date);
     setShowDateAnimation(true);
     setTimeout(() => setShowDateAnimation(false), 2000);
+    
+    // On mobile, ensure the date picker closes and focus moves to the next field
+    if (isMobile && date) {
+      // Close the date picker
+      document.activeElement.blur();
+      
+      // Find the time select element and focus it after a short delay
+      setTimeout(() => {
+        const timeSelect = document.querySelector('select[value="' + selectedTime + '"]');
+        if (timeSelect) {
+          timeSelect.focus();
+        }
+      }, 300);
+    }
   };
 
   const handleTimeChange = (e) => {
@@ -437,6 +495,8 @@ export default function Home() {
                   nameError ? 'border-red-400 border-2' : 'border-gray-300'
                 }`}
                 onFocus={() => handleInputFocus('name')}
+                onClick={() => handleInputFocus('name')}
+                onTouchStart={() => handleInputFocus('name')}
               />
               <AnimatePresence>
                 {nameError && (
@@ -466,6 +526,8 @@ export default function Home() {
                   emailError ? 'border-red-400 border-2' : 'border-gray-300'
                 }`}
                 onFocus={() => handleInputFocus('email')}
+                onClick={() => handleInputFocus('email')}
+                onTouchStart={() => handleInputFocus('email')}
               />
               <AnimatePresence>
                 {emailError && (
@@ -502,7 +564,22 @@ export default function Home() {
                 placeholderText="Select a date"
                 calendarClassName="bg-white shadow-lg rounded-lg"
                 showPopperArrow={false}
-                wrapperClassName="w-full" /* Added wrapper class for full width */
+                wrapperClassName="w-full"
+                onFocus={() => handleInputFocus('date')}
+                onClick={() => handleInputFocus('date')}
+                onTouchStart={() => handleInputFocus('date')}
+                popperModifiers={{
+                  preventOverflow: {
+                    enabled: true,
+                    escapeWithReference: false,
+                    boundariesElement: 'viewport'
+                  }
+                }}
+                popperProps={{
+                  positionFixed: true
+                }}
+                shouldCloseOnSelect={true}
+                disabledKeyboardNavigation={false}
               />
               <AnimatePresence>
                 {dateError && (
@@ -532,6 +609,8 @@ export default function Home() {
                   handleTimeChange(e);
                   handleInputFocus('time');
                 }}
+                onClick={() => handleInputFocus('time')}
+                onTouchStart={() => handleInputFocus('time')}
                 value={selectedTime}
                 style={{ backgroundColor: 'transparent' }}
               >
@@ -567,6 +646,8 @@ export default function Home() {
                   setNumberOfPeople(e.target.value);
                   handleInputFocus('numberOfPeople');
                 }}
+                onClick={() => handleInputFocus('numberOfPeople')}
+                onTouchStart={() => handleInputFocus('numberOfPeople')}
                 value={numberOfPeople}
                 name="numberOfPeople"
                 style={{ backgroundColor: 'transparent' }}
@@ -666,7 +747,7 @@ export default function Home() {
                     <stop offset="90%" stopColor="#285AEB"/>
                   </radialGradient>
                 </defs>
-                <path fill="url(#instagram-gradient)" d="M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06l.045.03zm0 3.678c-3.405 0-6.162 2.76-6.162 6.162 0 3.405 2.76 6.162 6.162 6.162 3.405 0 6.162-2.76 6.162-6.162 0-3.405-2.76-6.162-6.162-6.162zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405c0 .795-.646 1.44-1.44 1.44-.795 0-1.44-.646-1.44-1.44 0-.794.646-1.439 1.44-1.439.793-.001 1.44.645 1.44 1.439z"/>
+                <path fill="url(#instagram-gradient)" d="M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-1.38-.898-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06l.045.03zm0 3.678c-3.405 0-6.162 2.76-6.162 6.162 0 3.405 2.76 6.162 6.162 6.162 3.405 0 6.162-2.76 6.162-6.162 0-3.405-2.76-6.162-6.162-6.162zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405c0 .795-.646 1.44-1.44 1.44-.795 0-1.44-.646-1.44-1.44 0-.794.646-1.439 1.44-1.439.793-.001 1.44.645 1.44 1.439z"/>
               </svg>
               <span className="block text-sm">Instagram</span>
             </a>
