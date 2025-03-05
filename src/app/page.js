@@ -379,7 +379,7 @@ export default function Home() {
               </p>
               <p className="text-lg">
                 <span className="font-medium">Email:</span><br/>
-                <span className="underline">ronalyncruz020@gmail.com</span>
+                <span className="underline">yogarona.fit@gmail.com</span>
               </p>
             </motion.div>
           </div>
