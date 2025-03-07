@@ -109,6 +109,12 @@ export default function Home() {
             e.preventDefault();
           }
           input.focus();
+          
+          // Add visual feedback for touch
+          input.classList.add('touch-highlight');
+          setTimeout(() => {
+            input.classList.remove('touch-highlight');
+          }, 300);
         }, { passive: false });
       });
       
@@ -121,6 +127,12 @@ export default function Home() {
             if (document.activeElement !== e.target) {
               e.preventDefault();
               e.target.focus();
+              // Trigger click to open the date picker with a single tap
+              setTimeout(() => {
+                if (document.activeElement === e.target) {
+                  e.target.click();
+                }
+              }, 50);
             }
           }, { passive: false });
           
@@ -130,17 +142,26 @@ export default function Home() {
             datePickerContainer.addEventListener('touchend', (e) => {
               if (e.target.classList.contains('react-datepicker__day--selected') || 
                   e.target.classList.contains('react-datepicker__day')) {
+                // Force close the date picker and move focus to the next field
                 setTimeout(() => {
                   datePickerInput.blur();
+                  // Find the time select element and focus it
+                  const timeSelect = document.querySelector('select[value="' + selectedTime + '"]');
+                  if (timeSelect) {
+                    timeSelect.focus();
+                  }
                 }, 100);
               }
             }, { passive: true });
+            
+            // Improve date picker styling for mobile
+            datePickerContainer.classList.add('mobile-date-picker');
           }
         }
       };
       
       // Run the fix after a short delay to ensure the date picker is rendered
-      setTimeout(fixDatePickerOnMobile, 1000);
+      setTimeout(fixDatePickerOnMobile, 500);
       
       // Also run it when the date picker is opened
       const dateInput = document.querySelector('.react-datepicker-wrapper input');
@@ -149,6 +170,36 @@ export default function Home() {
           setTimeout(fixDatePickerOnMobile, 300);
         });
       }
+      
+      // Ensure validation errors are visible on mobile
+      const form = document.querySelector('form');
+      if (form) {
+        form.addEventListener('submit', () => {
+          // Force scroll to any error field after a short delay
+          setTimeout(() => {
+            const errorField = document.querySelector('.border-red-400');
+            if (errorField) {
+              errorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }, 100);
+        });
+      }
+      
+      // Add better touch feedback for buttons
+      const buttons = document.querySelectorAll('button');
+      buttons.forEach(button => {
+        button.addEventListener('touchstart', () => {
+          button.classList.add('touch-active');
+        }, { passive: true });
+        
+        button.addEventListener('touchend', () => {
+          button.classList.remove('touch-active');
+        }, { passive: true });
+        
+        button.addEventListener('touchcancel', () => {
+          button.classList.remove('touch-active');
+        }, { passive: true });
+      });
     }
     
     return () => {
@@ -158,9 +209,16 @@ export default function Home() {
         inputs.forEach(input => {
           input.removeEventListener('touchend', () => {});
         });
+        
+        const buttons = document.querySelectorAll('button');
+        buttons.forEach(button => {
+          button.removeEventListener('touchstart', () => {});
+          button.removeEventListener('touchend', () => {});
+          button.removeEventListener('touchcancel', () => {});
+        });
       }
     };
-  }, [isMobile]);
+  }, [isMobile, selectedTime]);
 
   const isWeekday = (date) => {
     const day = date.getDay();
@@ -247,46 +305,44 @@ export default function Home() {
     
     // Validate all fields
     let hasError = false;
+    let firstErrorField = null;
+    
     if (!name) {
       setNameError(true);
       hasError = true;
+      if (!firstErrorField) firstErrorField = 'input[name="name"]';
     }
     if (!email) {
       setEmailError(true);
       hasError = true;
+      if (!firstErrorField) firstErrorField = 'input[name="email"]';
     }
     if (!startDate) {
       setDateError(true);
       hasError = true;
+      if (!firstErrorField) firstErrorField = '.react-datepicker-wrapper input';
     }
     if (!selectedTime) {
       setTimeError(true);
       hasError = true;
+      if (!firstErrorField) firstErrorField = 'select[value="' + selectedTime + '"]';
     }
     if (!numberOfPeople) {
       setNumberOfPeopleError(true);
       hasError = true;
+      if (!firstErrorField) firstErrorField = 'select[name="numberOfPeople"]';
     }
 
     // Scroll to the first error field on mobile
-    if (hasError && isMobile) {
-      const errorFields = [
-        { error: nameError, selector: 'input[name="name"]' },
-        { error: emailError, selector: 'input[name="email"]' },
-        { error: dateError, selector: '.react-datepicker-wrapper input' },
-        { error: timeError, selector: 'select[value="' + selectedTime + '"]' },
-        { error: numberOfPeopleError, selector: 'select[name="numberOfPeople"]' }
-      ];
-      
-      for (const field of errorFields) {
-        if (field.error) {
-          const element = document.querySelector(field.selector);
-          if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            setTimeout(() => element.focus(), 500);
-            break;
-          }
-        }
+    if (hasError && isMobile && firstErrorField) {
+      const element = document.querySelector(firstErrorField);
+      if (element) {
+        // Wait a moment for error states to update in the DOM
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          setTimeout(() => element.focus(), 500);
+        }, 100);
+        return; // Stop form submission
       }
     }
 
@@ -357,6 +413,59 @@ export default function Home() {
       <Head>
         <title>Yoga Serenity</title>
         <meta name="description" content="Find peace and balance with our yoga classes" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
+        <style jsx global>{`
+          /* Mobile-specific styles */
+          @media (max-width: 768px) {
+            input, select, button {
+              font-size: 16px !important; /* Prevent zoom on iOS */
+              min-height: 44px; /* Minimum touch target size */
+            }
+            
+            .touch-highlight {
+              background-color: rgba(147, 112, 219, 0.1) !important;
+            }
+            
+            .touch-active {
+              transform: scale(0.98);
+              opacity: 0.9;
+            }
+            
+            .mobile-date-picker .react-datepicker__day {
+              padding: 0.5rem;
+              margin: 0.2rem;
+              line-height: 1;
+              width: 2rem;
+              height: 2rem;
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+            }
+            
+            .mobile-date-picker .react-datepicker__day-name {
+              width: 2rem;
+              margin: 0.2rem;
+            }
+            
+            .mobile-date-picker .react-datepicker__header {
+              padding-top: 1rem;
+            }
+            
+            .mobile-date-picker .react-datepicker__navigation {
+              top: 1rem;
+            }
+            
+            /* Improve form spacing on mobile */
+            form .mb-4 {
+              margin-bottom: 1.5rem;
+            }
+            
+            /* Ensure buttons have proper touch targets */
+            button {
+              transition: transform 0.2s, opacity 0.2s;
+            }
+          }
+        `}</style>
       </Head>
 
       {/* Hero Section */}
@@ -408,8 +517,15 @@ export default function Home() {
             </div>
             <p className="text-lg md:text-xl mb-8">Join us for transformative classes and inner peace.</p>
             <button 
-              onClick={() => document.getElementById('booking-section').scrollIntoView({ behavior: 'smooth' })} 
+              onClick={(e) => {
+                e.preventDefault(); // Prevent any default behavior
+                const bookingSection = document.getElementById('booking-section');
+                if (bookingSection) {
+                  bookingSection.scrollIntoView({ behavior: 'smooth' });
+                }
+              }} 
               className="bg-royal-purple text-white px-6 py-3 rounded-full hover:bg-lilac transition duration-300"
+              style={{ minHeight: isMobile ? '50px' : 'auto', minWidth: isMobile ? '160px' : 'auto' }}
             >
               Book Now
             </button>
@@ -554,7 +670,7 @@ export default function Home() {
           >
             Book Your Session
           </motion.h2>
-          <form onSubmit={handleBookingSubmit} className="max-w-md mx-auto">
+          <form onSubmit={handleBookingSubmit} className={`max-w-md mx-auto ${isMobile ? 'mobile-form' : ''}`}>
             <div className="relative mb-4">
               <input 
                 type="text" 
@@ -662,6 +778,9 @@ export default function Home() {
                     document.activeElement.blur();
                   }
                 }}
+                closeOnScroll={true}
+                useWeekdaysShort={true}
+                fixedHeight={true}
               />
               <AnimatePresence>
                 {dateError && (
@@ -764,6 +883,7 @@ export default function Home() {
               type="submit" 
               className="bg-royal-purple text-white px-6 py-3 rounded-full hover:bg-lilac transition duration-300 w-full relative"
               disabled={isSubmitting}
+              style={{ minHeight: isMobile ? '50px' : 'auto' }}
             >
               {isSubmitting ? (
                 <div className="flex items-center justify-center">
@@ -907,26 +1027,6 @@ export default function Home() {
               </p>
             </div>
           </motion.div>
-        </div>
-      </section>
-
-      {/* Newsletter */}
-      <section className="py-12 bg-timberwolf">
-        <div className="container mx-auto px-4">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="text-3xl font-playfair text-center mb-8"
-          >
-            Newsletter
-          </motion.h2>
-          <form className="max-w-md mx-auto">
-            <input type="email" placeholder="Your Email" className="w-full p-3 mb-4 rounded-lg border" />
-            <button type="submit" className="bg-royal-purple text-white px-6 py-3 rounded-full hover:bg-lilac transition duration-300 w-full">
-              Subscribe
-            </button>
-          </form>
         </div>
       </section>
 
