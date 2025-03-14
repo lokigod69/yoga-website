@@ -6,6 +6,7 @@ import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import React from 'react';
 import { LoadScript, GoogleMap, Marker } from '@react-google-maps/api';
+import LayoutWithHeader from './layout-with-header';
 
 // Sample data
 const schedule = [
@@ -70,12 +71,19 @@ export default function Home() {
   const [emailError, setEmailError] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [currentLetterIndex, setCurrentLetterIndex] = React.useState(0);
-  const [text1, setText1] = React.useState("Consciousness and unseen forces");
-  const [text2, setText2] = React.useState("guiding us");
+  const [text1, setText1] = React.useState("Where consciousness meets movement");
   const [dateError, setDateError] = React.useState(false);
   const [timeError, setTimeError] = React.useState(false);
   const [numberOfPeopleError, setNumberOfPeopleError] = React.useState(false);
   const [isMobile, setIsMobile] = React.useState(false);
+
+  // State for contact form
+  const [contactName, setContactName] = React.useState('');
+  const [contactEmail, setContactEmail] = React.useState('');
+  const [contactSessionType, setContactSessionType] = React.useState('');
+  const [contactMessage, setContactMessage] = React.useState('');
+  const [isContactSubmitting, setIsContactSubmitting] = React.useState(false);
+  const [showContactThankYou, setShowContactThankYou] = React.useState(false);
 
   // Detect mobile devices
   React.useEffect(() => {
@@ -385,6 +393,56 @@ export default function Home() {
     }
   };
 
+  const handleContactSubmit = async (e) => {
+    e.preventDefault();
+    
+    // Simple validation
+    if (!contactName || !contactEmail || !contactSessionType || !contactMessage) {
+      alert('Please fill out all fields');
+      return;
+    }
+    
+    setIsContactSubmitting(true);
+    
+    try {
+      const response = await fetch('/api/send-contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: contactName,
+          email: contactEmail,
+          sessionType: contactSessionType,
+          message: contactMessage,
+        }),
+      });
+      
+      if (response.ok) {
+        // Reset form
+        setContactName('');
+        setContactEmail('');
+        setContactSessionType('');
+        setContactMessage('');
+        
+        // Show thank you message
+        setShowContactThankYou(true);
+        
+        // Hide thank you message after 5 seconds
+        setTimeout(() => {
+          setShowContactThankYou(false);
+        }, 5000);
+      } else {
+        alert('Failed to send message. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error sending contact form:', error);
+      alert('An error occurred. Please try again.');
+    } finally {
+      setIsContactSubmitting(false);
+    }
+  };
+
   React.useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
@@ -394,7 +452,7 @@ export default function Home() {
 
   React.useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentLetterIndex((prev) => (prev + 1) % (text1.length + text2.length));
+      setCurrentLetterIndex((prev) => (prev + 1) % text1.length);
     }, 100); // Speed of animation
     
     return () => clearInterval(interval);
@@ -408,7 +466,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen">
+    <LayoutWithHeader>
       {/* Head for metadata */}
       <Head>
         <title>Yoga Serenity</title>
@@ -469,7 +527,7 @@ export default function Home() {
       </Head>
 
       {/* Hero Section */}
-      <section className="relative h-screen bg-cover bg-center" style={{ backgroundImage: 'url(/hero-ocean.jpg)' }}>
+      <section id="home-section" className="relative h-screen bg-cover bg-center" style={{ backgroundImage: 'url(/hero-ocean.jpg)' }}>
         <div className="absolute inset-0 bg-jet-black opacity-50"></div>
         <div className="relative z-10 flex h-full items-center justify-center text-center text-white">
           <motion.div
@@ -479,9 +537,9 @@ export default function Home() {
             className="p-6"
           >
             <h1 className="text-4xl md:text-6xl font-playfair mb-4">Find Your Yoga Serenity</h1>
-            <div className="h-24 md:h-16 mb-8"> {/* Increased height for mobile */}
+            <div className="h-auto min-h-[120px] md:min-h-[80px] mb-6 md:mb-8"> {/* Adjusted for better mobile display */}
               <div className="text-xl md:text-3xl font-playfair">
-                <p className="mb-2">
+                <p>
                   {text1.split('').map((letter, index) => (
                     <motion.span
                       key={index}
@@ -497,21 +555,9 @@ export default function Home() {
                     </motion.span>
                   ))}
                 </p>
-                <p>
-                  {text2.split('').map((letter, index) => (
-                    <motion.span
-                      key={index + text1.length}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ 
-                        opacity: Math.abs(Math.sin((currentLetterIndex - index - text1.length) * 0.3)), 
-                        y: Math.sin((currentLetterIndex - index - text1.length) * 0.3) * 10 
-                      }}
-                      transition={{ duration: 0.5, ease: "easeInOut" }}
-                      className="inline-block"
-                    >
-                      {letter === ' ' ? '\u00A0' : letter}
-                    </motion.span>
-                  ))}
+                <p className="mt-4 text-base md:text-xl mx-auto max-w-[90%] md:max-w-[80%] leading-relaxed">
+                  I'm here to guide and learn along with you on how to find more
+                  ease and joy through the practices of yoga and meditation.
                 </p>
               </div>
             </div>
@@ -533,8 +579,73 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Introduction to Yoga Section */}
+      <section id="introduction" className="py-12 md:py-16 bg-white">
+        <div className="container mx-auto px-4 md:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true, margin: "-100px" }}
+            className="max-w-4xl mx-auto"
+          >
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-playfair text-center mb-6 text-royal-purple">
+              Introduction to Yoga: A Journey for Every Body
+            </h2>
+            
+            <div className="prose prose-lg max-w-none mb-8 text-gray-700 leading-relaxed">
+              <p className="mb-6">
+                Yoga is an ancient practice that combines physical postures, breath control, and mindfulness
+                to promote physical health, mental clarity, and emotional balance. Dating back thousands of
+                years from its origins in India, yoga has evolved into various styles and approaches that make it
+                accessible to everyone, regardless of age, fitness level or flexibility.
+              </p>
+              
+              <h3 className="text-xl md:text-2xl font-playfair text-royal-purple mt-8 mb-4">What Yoga Offers</h3>
+              <ul className="space-y-2 ml-6 list-disc">
+                <li><span className="font-medium">Physical Benefits:</span> Improved flexibility, strength, balance, and posture</li>
+                <li><span className="font-medium">Mental Benefits:</span> Reduced stress, increased focus, and greater mental clarity</li>
+                <li><span className="font-medium">Emotional Benefits:</span> Enhanced self-awareness and emotional regulation</li>
+                <li><span className="font-medium">Spiritual Connection:</span> For those who seek it, a deeper connection to self and universe</li>
+              </ul>
+              
+              <h3 className="text-xl md:text-2xl font-playfair text-royal-purple mt-8 mb-4">Beginning Your Practice</h3>
+              <p className="mb-4">
+                Yoga is not about perfection but about practice. As you start, remember:
+              </p>
+              <ol className="space-y-2 ml-6 list-decimal">
+                <li><span className="font-medium">Honor Your Body:</span> Listen to your body's signals and modify poses as needed</li>
+                <li><span className="font-medium">Focus on Breath:</span> The breath is your anchor throughout practice</li>
+                <li><span className="font-medium">Be Present:</span> Bring awareness to sensations, thoughts, and emotions without judgment</li>
+                <li><span className="font-medium">Practice Consistency:</span> Even short, regular sessions yield greater benefits than occasional long ones</li>
+              </ol>
+              
+              <div className="mt-8 p-6 bg-cultured rounded-lg border-l-4 border-royal-purple shadow-sm">
+                <p className="italic">
+                  Remember that yoga is a personal journey. There is no competition, no "perfect pose," and no
+                  timeline for progress. Your practice is uniquely yours, evolving as you do. Whether you're
+                  seeking physical fitness, stress relief, or deeper self-understanding, yoga offers a path
+                  forward—one breath, one movement at a time. Approach your mat with curiosity and
+                  compassion, and you'll discover that yoga is not just something you do—it's a way of being that
+                  extends far beyond the edges of your mat.
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex justify-center mt-8">
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                className="rounded-lg overflow-hidden shadow-md max-w-xs"
+              >
+                <Image src="/yoga-pose-1.jpg" alt="Yoga Pose" width={300} height={300} className="w-full h-auto" />
+              </motion.div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
       {/* About Section */}
-      <section className="py-12 bg-cultured">
+      <section id="about" className="py-12 bg-cultured">
         <div className="container mx-auto px-4">
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
@@ -585,7 +696,7 @@ export default function Home() {
       </section>
 
       {/* Schedule Section */}
-      <section className="py-12 bg-timberwolf">
+      <section id="classes-section" className="py-12 bg-timberwolf">
         <div className="container mx-auto px-4">
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
@@ -602,27 +713,73 @@ export default function Home() {
               transition={{ duration: 0.8 }}
               className="bg-cultured p-8 rounded-lg shadow-md max-w-lg w-full text-center"
             >
-              <p className="text-2xl font-bold mb-4">Drop-in Sessions</p>
-              <p className="text-xl mb-2">Monday to Saturday</p>
-              <p className="text-lg mb-2">10:00 - 11:00 AM<br/>5:00 - 6:00 PM</p>
-              <p className="text-lg mb-2">@ 350 php</p>
+              <h3 className="text-2xl font-bold mb-4 text-center">Drop-in Sessions</h3>
+              <p className="text-xl mb-2 text-center">Monday to Saturday</p>
+              <p className="text-lg mb-2 text-center">10:00 - 11:00 AM<br/>5:00 - 6:00 PM</p>
+              <p className="text-lg mb-4 text-center">@ 350 php</p>
+              <p className="text-base text-center">
+                <button 
+                  onClick={() => document.getElementById('booking-section').scrollIntoView({ behavior: 'smooth' })}
+                  className="text-royal-purple font-medium hover:underline focus:outline-none"
+                >
+                  Book your drop-in session today.
+                </button>
+              </p>
             </motion.div>
 
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
-              className="bg-cultured p-8 rounded-lg shadow-md max-w-lg w-full text-center"
+              className="bg-cultured p-8 rounded-lg shadow-md max-w-lg w-full"
             >
-              <p className="text-2xl font-bold mb-4">Private Sessions</p>
-              <p className="text-lg mb-3">Contact us to schedule:</p>
-              <p className="text-lg mb-2">
-                <span className="font-medium">WhatsApp + Mobile:</span><br/>
-                <span className="underline">+639171294303</span>
+              <h3 className="text-2xl font-bold mb-4 text-center">Private Sessions</h3>
+              <h4 className="text-xl text-royal-purple mb-4 text-center italic">Transform Your Practice, Transform Your Life</h4>
+              <p className="text-base mb-4">
+                Discover the power of personalized attention in your yoga journey. Our private sessions are
+                tailored exclusively to your body, goals, and schedule—no cookie-cutter sequences, no
+                distractions, just pure, focused growth.
               </p>
-              <p className="text-lg">
-                <span className="font-medium">Email:</span><br/>
-                <span className="underline">yogarona.fit@gmail.com</span>
+              <p className="text-base mb-4">
+                Whether you're touching your toes for the first time or continuing your practice, our session
+                meets exactly where you are. Unlock your full potential in a supportive space where every
+                breath, every movement, and every moment are designed just for you.
+              </p>
+              <p className="text-base mb-4">
+                Your personal transformation begins here. <button 
+                  onClick={() => document.getElementById('location-section').scrollIntoView({ behavior: 'smooth' })}
+                  className="text-royal-purple font-medium hover:underline focus:outline-none"
+                >
+                  Book your private session today.
+                </button>
+              </p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="bg-cultured p-8 rounded-lg shadow-md max-w-lg w-full"
+            >
+              <h3 className="text-2xl font-bold mb-4 text-center">Online Sessions</h3>
+              <h4 className="text-xl text-royal-purple mb-4 text-center italic">Yoga Anywhere, Anytime: Your Practice, Your Space</h4>
+              <p className="text-base mb-4">
+                Transform any corner of your home into a sanctuary of strength and serenity with our online
+                yoga sessions. I'll be guiding your practice in real-time, delivering personalized attention
+                through your screen as if they were right beside you.
+              </p>
+              <p className="text-base mb-4">
+                No commute, no crowded studios—just authentic yoga that fits your schedule, your level, and
+                your goals. Whether you're a curious beginner or dedicated practitioner, our virtual sessions
+                deliver the perfect balance of challenge and support.
+              </p>
+              <p className="text-base mb-4">
+                Roll out your mat, click connect, and discover the freedom of practicing exactly how and when you need it most. <button 
+                  onClick={() => document.getElementById('location-section').scrollIntoView({ behavior: 'smooth' })}
+                  className="text-royal-purple font-medium hover:underline focus:outline-none"
+                >
+                  Book your online session today.
+                </button>
               </p>
             </motion.div>
           </div>
@@ -909,7 +1066,7 @@ export default function Home() {
                 transition={{ duration: 0.5 }}
                 className="mt-8 p-6 bg-white rounded-lg shadow-lg max-w-md mx-auto text-center"
               >
-                <svg className="w-16 h-16 mx-auto mb-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <svg className="w-16 h-16 mx-auto mb-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                 </svg>
                 <h3 className="text-xl font-playfair mb-2">Booking Confirmed!</h3>
@@ -927,7 +1084,7 @@ export default function Home() {
       </section>
 
       {/* Stay Connected - Social Media */}
-      <section className="py-12 bg-timberwolf">
+      <section id="stay-connected" className="py-12 bg-timberwolf">
         <div className="container mx-auto px-4">
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
@@ -949,7 +1106,7 @@ export default function Home() {
                     <stop offset="90%" stopColor="#285AEB"/>
                   </radialGradient>
                 </defs>
-                <path fill="url(#instagram-gradient)" d="M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-1.38-.898-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06l.045.03zm0 3.678c-3.405 0-6.162 2.76-6.162 6.162 0 3.405 2.76 6.162 6.162 6.162 3.405 0 6.162-2.76 6.162-6.162 0-3.405-2.76-6.162-6.162-6.162zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405c0 .795-.646 1.44-1.44 1.44-.795 0-1.44-.646-1.44-1.44 0-.794.646-1.439 1.44-1.439.793-.001 1.44.645 1.44 1.439z"/>
+                <path fill="url(#instagram-gradient)" d="M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06l.045.03zm0 3.678c-3.405 0-6.162 2.76-6.162 6.162 0 3.405 2.76 6.162 6.162 6.162 3.405 0 6.162-2.76 6.162-6.162 0-3.405-2.76-6.162-6.162-6.162zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405c0 .795-.646 1.44-1.44 1.44-.795 0-1.44-.646-1.44-1.44 0-.794.646-1.439 1.44-1.439.793-.001 1.44.645 1.44 1.439z"/>
               </svg>
               <span className="block text-sm">Instagram</span>
             </a>
@@ -964,7 +1121,7 @@ export default function Home() {
       </section>
 
       {/* Contact Form with Google Maps */}
-      <section className="py-12 bg-cultured">
+      <section id="location-section" className="py-12 bg-cultured">
         <div className="container mx-auto px-4">
           <motion.h2 
             initial={{ opacity: 0, y: 20 }} 
@@ -975,14 +1132,86 @@ export default function Home() {
             Contact Us
           </motion.h2>
           <div className="max-w-md mx-auto mb-12">
-            <form>
-              <input type="text" placeholder="Your Name" className="w-full p-3 mb-4 rounded-lg border" />
-              <input type="email" placeholder="Your Email" className="w-full p-3 mb-4 rounded-lg border" />
-              <textarea placeholder="Your Message" className="w-full p-3 mb-4 rounded-lg border h-32"></textarea>
-              <button type="submit" className="bg-royal-purple text-white px-6 py-3 rounded-full hover:bg-lilac transition duration-300 w-full">
-                Send Message
+            <form onSubmit={handleContactSubmit}>
+              <input 
+                type="text" 
+                placeholder="Your Name" 
+                className="w-full p-3 mb-4 rounded-lg border"
+                value={contactName}
+                onChange={(e) => setContactName(e.target.value)}
+                required
+              />
+              <input 
+                type="email" 
+                placeholder="Your Email" 
+                className="w-full p-3 mb-4 rounded-lg border"
+                value={contactEmail}
+                onChange={(e) => setContactEmail(e.target.value)}
+                required
+              />
+              <div className="relative mb-4">
+                <select 
+                  className="w-full p-3 rounded-lg border appearance-none bg-white"
+                  value={contactSessionType}
+                  onChange={(e) => setContactSessionType(e.target.value)}
+                  required
+                  style={{ 
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23444' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E")`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 1rem center',
+                    paddingRight: '2.5rem'
+                  }}
+                >
+                  <option value="" disabled>Select Session Type</option>
+                  <option value="private">Private Session</option>
+                  <option value="online">Online Session</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <textarea 
+                placeholder="Your Message" 
+                className="w-full p-3 mb-4 rounded-lg border h-32"
+                value={contactMessage}
+                onChange={(e) => setContactMessage(e.target.value)}
+                required
+              ></textarea>
+              <button 
+                type="submit" 
+                className="bg-royal-purple text-white px-6 py-3 rounded-full hover:bg-lilac transition duration-300 w-full"
+                disabled={isContactSubmitting}
+              >
+                {isContactSubmitting ? (
+                  <div className="flex items-center justify-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Sending...
+                  </div>
+                ) : (
+                  'Send Message'
+                )}
               </button>
             </form>
+            
+            {/* Thank you message */}
+            <AnimatePresence>
+              {showContactThankYou && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.5 }}
+                  className="mt-6 p-4 bg-white rounded-lg shadow-md text-center"
+                >
+                  <svg className="w-12 h-12 mx-auto mb-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
+                  <h3 className="text-lg font-medium mb-1">Thank You!</h3>
+                  <p className="text-gray-600">We've received your message and will get back to you soon.</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
           
           {/* Google Maps Widget */}
@@ -1036,6 +1265,6 @@ export default function Home() {
           <p>&copy; {new Date().getFullYear()} Yoga Serenity. All rights reserved.</p>
         </div>
       </footer>
-    </div>
+    </LayoutWithHeader>
   );
 }
