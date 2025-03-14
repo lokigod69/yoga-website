@@ -79,7 +79,16 @@ const LayoutWithHeader = ({ children }) => {
     setIsOpen(false);
     const element = document.getElementById(id);
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
+      // Add a small delay for mobile to ensure menu is closed before scrolling
+      setTimeout(() => {
+        // Calculate header height to account for fixed header
+        const headerHeight = headerRef.current ? headerRef.current.offsetHeight : 0;
+        const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
+        window.scrollTo({
+          top: elementPosition - headerHeight,
+          behavior: 'smooth'
+        });
+      }, isMobile ? 300 : 0);
       setActiveSection(id);
     }
   };

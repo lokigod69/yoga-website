@@ -539,7 +539,7 @@ export default function Home() {
             <h1 className="text-4xl md:text-6xl font-playfair mb-4">Find Your Yoga Serenity</h1>
             <div className="h-auto min-h-[120px] md:min-h-[80px] mb-6 md:mb-8"> {/* Adjusted for better mobile display */}
               <div className="text-xl md:text-3xl font-playfair">
-                <p>
+                <p style={{ whiteSpace: 'normal', wordBreak: 'keep-all' }}>
                   {text1.split('').map((letter, index) => (
                     <motion.span
                       key={index}
@@ -719,7 +719,19 @@ export default function Home() {
               <p className="text-lg mb-4 text-center">@ 350 php</p>
               <p className="text-base text-center">
                 <button 
-                  onClick={() => document.getElementById('booking-section').scrollIntoView({ behavior: 'smooth' })}
+                  onClick={() => {
+                    const bookingSection = document.getElementById('booking-section');
+                    if (bookingSection) {
+                      // Calculate header height to account for fixed header
+                      const header = document.querySelector('header');
+                      const headerHeight = header ? header.offsetHeight : 0;
+                      const elementPosition = bookingSection.getBoundingClientRect().top + window.pageYOffset;
+                      window.scrollTo({
+                        top: elementPosition - headerHeight,
+                        behavior: 'smooth'
+                      });
+                    }
+                  }} 
                   className="text-royal-purple font-medium hover:underline focus:outline-none"
                 >
                   Book your drop-in session today.
@@ -747,7 +759,19 @@ export default function Home() {
               </p>
               <p className="text-base mb-4">
                 Your personal transformation begins here. <button 
-                  onClick={() => document.getElementById('location-section').scrollIntoView({ behavior: 'smooth' })}
+                  onClick={() => {
+                    const locationSection = document.getElementById('location-section');
+                    if (locationSection) {
+                      // Calculate header height to account for fixed header
+                      const header = document.querySelector('header');
+                      const headerHeight = header ? header.offsetHeight : 0;
+                      const elementPosition = locationSection.getBoundingClientRect().top + window.pageYOffset;
+                      window.scrollTo({
+                        top: elementPosition - headerHeight,
+                        behavior: 'smooth'
+                      });
+                    }
+                  }}
                   className="text-royal-purple font-medium hover:underline focus:outline-none"
                 >
                   Book your private session today.
@@ -928,7 +952,8 @@ export default function Home() {
                   }
                 }}
                 shouldCloseOnSelect={true}
-                disabledKeyboardNavigation={false}
+                disabledKeyboardNavigation={isMobile}
+                readOnly={isMobile}
                 onClickOutside={() => {
                   // Force close on mobile
                   if (isMobile) {
@@ -937,7 +962,6 @@ export default function Home() {
                 }}
                 closeOnScroll={true}
                 useWeekdaysShort={true}
-                fixedHeight={true}
               />
               <AnimatePresence>
                 {dateError && (
@@ -1095,7 +1119,18 @@ export default function Home() {
             Stay Connected
           </motion.h2>
           <div className="flex justify-center gap-12">
-            <a href="https://instagram.com/yogaserene" className="hover:opacity-80 transition duration-300">
+            <a 
+              href="https://instagram.com/yogaserene" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="hover:opacity-80 transition duration-300 flex flex-col items-center"
+              onClick={(e) => {
+                if (isMobile) {
+                  e.preventDefault();
+                  window.open('https://instagram.com/yogaserene', '_blank');
+                }
+              }}
+            >
               <svg className="w-12 h-12 mx-auto mb-2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <defs>
                   <radialGradient id="instagram-gradient" cx="30%" cy="107%" r="150%">
@@ -1110,7 +1145,18 @@ export default function Home() {
               </svg>
               <span className="block text-sm">Instagram</span>
             </a>
-            <a href="https://facebook.com/yogaserene" className="hover:opacity-80 transition duration-300">
+            <a 
+              href="https://facebook.com/yogaserene" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="hover:opacity-80 transition duration-300 flex flex-col items-center"
+              onClick={(e) => {
+                if (isMobile) {
+                  e.preventDefault();
+                  window.open('https://facebook.com/yogaserene', '_blank');
+                }
+              }}
+            >
               <svg className="w-12 h-12 mx-auto mb-2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path fill="#1877F2" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
               </svg>
@@ -1208,7 +1254,7 @@ export default function Home() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                   </svg>
                   <h3 className="text-lg font-medium mb-1">Thank You!</h3>
-                  <p className="text-gray-600">We've received your message and will get back to you soon.</p>
+                  <p className="mb-4">We've received your message and will get back to you soon.</p>
                 </motion.div>
               )}
             </AnimatePresence>
