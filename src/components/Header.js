@@ -67,6 +67,43 @@ export default function Header() {
     };
   }, [mobileMenuOpen]);
 
+  // Add touch-specific handling for mobile menu items
+  React.useEffect(() => {
+    // Only run on mobile
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      const menuButtons = document.querySelectorAll('.mobile-menu-container button');
+      
+      menuButtons.forEach(button => {
+        // Add active state styling for better touch feedback
+        button.addEventListener('touchstart', () => {
+          button.classList.add('touch-active');
+        }, { passive: true });
+        
+        button.addEventListener('touchend', (e) => {
+          button.classList.remove('touch-active');
+          // Get the section ID from the button's data attribute
+          const sectionId = button.getAttribute('data-section');
+          if (sectionId) {
+            e.preventDefault();
+            scrollToSection(sectionId);
+          }
+        }, { passive: false });
+        
+        button.addEventListener('touchcancel', () => {
+          button.classList.remove('touch-active');
+        }, { passive: true });
+      });
+      
+      return () => {
+        menuButtons.forEach(button => {
+          button.removeEventListener('touchstart', () => {});
+          button.removeEventListener('touchend', () => {});
+          button.removeEventListener('touchcancel', () => {});
+        });
+      };
+    }
+  }, [mobileMenuOpen]);
+
   return (
     <>
       {/* Desktop Header */}
@@ -147,16 +184,16 @@ export default function Header() {
       
       {/* Mobile Header */}
       <header className="fixed top-0 left-0 right-0 bg-white shadow-md z-50 md:hidden">
-        <div className="flex items-center justify-between px-4 py-4">
+        <div className="flex items-center justify-between px-4 py-3">
           {/* Logo */}
           <div className="flex items-center">
-            <span className="text-xl font-playfair text-royal-purple">Yoga Serenity</span>
+            <span className="text-lg font-playfair text-royal-purple truncate max-w-[180px]">Yoga Serenity</span>
           </div>
           
           {/* Mobile Menu Button */}
           <button 
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="mobile-menu-button text-gray-700 hover:text-royal-purple focus:outline-none p-3"
+            className="mobile-menu-button text-gray-700 hover:text-royal-purple focus:outline-none p-2"
             aria-label="Toggle mobile menu"
           >
             <motion.svg 
@@ -217,36 +254,40 @@ export default function Header() {
           <div className="px-4 py-4">
             <div className="flex flex-col">
               <button 
+                data-section="home-section"
                 onClick={() => scrollToSection('home-section')} 
-                className={`text-left flex items-center py-4 px-4 border-b border-gray-100 ${
+                className={`text-left flex items-center py-5 px-5 border-b border-gray-100 ${
                   activeSection === 'home-section' ? 'text-royal-purple bg-cultured' : 'text-gray-700 hover:text-royal-purple'
                 }`}
               >
-                <span>Home</span>
+                <span className="text-lg">Home</span>
               </button>
               <button 
+                data-section="classes-section"
                 onClick={() => scrollToSection('classes-section')} 
-                className={`text-left flex items-center py-4 px-4 border-b border-gray-100 ${
+                className={`text-left flex items-center py-5 px-5 border-b border-gray-100 ${
                   activeSection === 'classes-section' ? 'text-royal-purple bg-cultured' : 'text-gray-700 hover:text-royal-purple'
                 }`}
               >
-                <span>Classes</span>
+                <span className="text-lg">Classes</span>
               </button>
               <button 
+                data-section="booking-section"
                 onClick={() => scrollToSection('booking-section')} 
-                className={`text-left flex items-center py-4 px-4 border-b border-gray-100 ${
+                className={`text-left flex items-center py-5 px-5 border-b border-gray-100 ${
                   activeSection === 'booking-section' ? 'text-royal-purple bg-cultured' : 'text-gray-700 hover:text-royal-purple'
                 }`}
               >
-                <span>Book</span>
+                <span className="text-lg">Book</span>
               </button>
               <button 
+                data-section="location-section"
                 onClick={() => scrollToSection('location-section')} 
-                className={`text-left flex items-center py-4 px-4 border-b border-gray-100 ${
+                className={`text-left flex items-center py-5 px-5 border-b border-gray-100 ${
                   activeSection === 'location-section' ? 'text-royal-purple bg-cultured' : 'text-gray-700 hover:text-royal-purple'
                 }`}
               >
-                <span>Location</span>
+                <span className="text-lg">Location</span>
               </button>
             </div>
           </div>

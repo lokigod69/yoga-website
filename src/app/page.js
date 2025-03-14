@@ -132,6 +132,7 @@ export default function Home() {
         if (datePickerInput) {
           // Make sure single tap works
           datePickerInput.addEventListener('touchend', (e) => {
+            // Prevent default only if needed to avoid blocking the date picker from opening
             if (document.activeElement !== e.target) {
               e.preventDefault();
               e.target.focus();
@@ -154,7 +155,7 @@ export default function Home() {
                 setTimeout(() => {
                   datePickerInput.blur();
                   // Find the time select element and focus it
-                  const timeSelect = document.querySelector('select[value="' + selectedTime + '"]');
+                  const timeSelect = document.querySelector('select[name="time"]');
                   if (timeSelect) {
                     timeSelect.focus();
                   }
@@ -238,14 +239,12 @@ export default function Home() {
     setShowDateAnimation(true);
     setTimeout(() => setShowDateAnimation(false), 2000);
     
-    // On mobile, ensure the date picker closes and focus moves to the next field
+    // On mobile, ensure focus moves to the next field after selection
     if (isMobile && date) {
-      // Close the date picker by blurring the input
-      document.activeElement.blur();
-      
-      // Find the time select element and focus it after a short delay
+      // Allow a moment for the date to be set before moving focus
       setTimeout(() => {
-        const timeSelect = document.querySelector('select[value="' + selectedTime + '"]');
+        // Find the time select element and focus it
+        const timeSelect = document.querySelector('select[name="time"]');
         if (timeSelect) {
           timeSelect.focus();
         }
@@ -487,6 +486,29 @@ export default function Home() {
             .touch-active {
               transform: scale(0.98);
               opacity: 0.9;
+            }
+            
+            .mobile-menu-container button {
+              -webkit-tap-highlight-color: rgba(0,0,0,0);
+              transition: background-color 0.2s ease;
+            }
+            
+            .mobile-menu-container button:active {
+              background-color: rgba(147, 112, 219, 0.1);
+            }
+            
+            /* Ensure text doesn't cut off in hero section */
+            #home-section h1 {
+              padding: 0 10px;
+              word-wrap: break-word;
+              overflow-wrap: break-word;
+              hyphens: auto;
+            }
+            
+            #home-section p {
+              padding: 0 15px;
+              word-wrap: break-word;
+              overflow-wrap: break-word;
             }
             
             .mobile-date-picker .react-datepicker__day {
@@ -952,11 +974,11 @@ export default function Home() {
                   }
                 }}
                 shouldCloseOnSelect={true}
-                disabledKeyboardNavigation={isMobile}
-                readOnly={isMobile}
+                disabledKeyboardNavigation={false}
+                readOnly={false}
                 onClickOutside={() => {
-                  // Force close on mobile
-                  if (isMobile) {
+                  // Only blur on actual selection, not just clicking outside
+                  if (isMobile && startDate) {
                     document.activeElement.blur();
                   }
                 }}
@@ -1120,14 +1142,14 @@ export default function Home() {
           </motion.h2>
           <div className="flex justify-center gap-12">
             <a 
-              href="https://instagram.com/yogaserene" 
+              href="https://www.instagram.com/asan_yogarona/" 
               target="_blank" 
               rel="noopener noreferrer" 
               className="hover:opacity-80 transition duration-300 flex flex-col items-center"
               onClick={(e) => {
                 if (isMobile) {
                   e.preventDefault();
-                  window.open('https://instagram.com/yogaserene', '_blank');
+                  window.open('https://www.instagram.com/asan_yogarona/', '_blank');
                 }
               }}
             >
@@ -1146,14 +1168,14 @@ export default function Home() {
               <span className="block text-sm">Instagram</span>
             </a>
             <a 
-              href="https://facebook.com/yogaserene" 
+              href="https://www.facebook.com/profile.php?id=61555977477883" 
               target="_blank" 
               rel="noopener noreferrer" 
               className="hover:opacity-80 transition duration-300 flex flex-col items-center"
               onClick={(e) => {
                 if (isMobile) {
                   e.preventDefault();
-                  window.open('https://facebook.com/yogaserene', '_blank');
+                  window.open('https://www.facebook.com/profile.php?id=61555977477883', '_blank');
                 }
               }}
             >
@@ -1248,7 +1270,7 @@ export default function Home() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 0.5 }}
-                  className="mt-6 p-4 bg-white rounded-lg shadow-md text-center"
+                  className="mt-6 p-4 bg-white rounded-lg shadow-lg text-center"
                 >
                   <svg className="w-12 h-12 mx-auto mb-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
