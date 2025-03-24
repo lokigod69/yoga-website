@@ -174,7 +174,6 @@ export default function Home() {
             e.stopPropagation(); // Stop event from bubbling
             
             // Force focus and open the date picker
-            datePickerInput.focus();
             setTimeout(() => {
               // Programmatically click to ensure date picker opens
               datePickerInput.click();
@@ -1105,12 +1104,10 @@ export default function Home() {
                 calendarClassName="bg-white shadow-lg rounded-lg"
                 showPopperArrow={false}
                 wrapperClassName="w-full"
-                onFocus={() => handleInputFocus('date')}
-                onClick={() => handleInputFocus('date')}
                 shouldCloseOnSelect={true}
                 closeOnScroll={true}
                 useWeekdaysShort={true}
-                readOnly={isMobile} // Add readonly for mobile to prevent keyboard
+                readOnly={true} // Changed to true for all devices, not just mobile
                 popperModifiers={{
                   preventOverflow: {
                     enabled: true,
