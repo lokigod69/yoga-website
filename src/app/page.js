@@ -159,7 +159,7 @@ export default function Home() {
       // Fix date picker on mobile - ensure single click works
       const fixDatePickerOnMobile = () => {
         // Handle date picker input field
-        const datePickerInput = document.querySelector('.react-datepicker-wrapper input');
+        const datePickerInput = document.querySelector('.date-picker-container input');
         if (datePickerInput) {
           // Remove any existing listeners to avoid duplicates
           datePickerInput.removeEventListener('touchend', undefined);
@@ -168,37 +168,100 @@ export default function Home() {
           // Make input readonly to prevent keyboard on mobile
           datePickerInput.readOnly = true;
           
-          // Add new listener that ensures the date picker opens on first click/tap
-          datePickerInput.addEventListener('touchend', (e) => {
-            e.preventDefault(); // Prevent default to handle manually
-            e.stopPropagation(); // Stop event from bubbling
+          // Add a visible calendar icon to indicate it's clickable
+          datePickerInput.style.backgroundImage = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239370DB' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='16' y1='2' x2='16' y2='6'%3E%3C/line%3E%3Cline x1='8' y1='2' x2='8' y2='6'%3E%3C/line%3E%3Cline x1='3' y1='10' x2='21' y2='10'%3E%3C/line%3E%3C/svg%3E")`;
+          datePickerInput.style.backgroundRepeat = 'no-repeat';
+          datePickerInput.style.backgroundPosition = 'right 10px center';
+          datePickerInput.style.paddingRight = '40px';
+          
+          // Make the input element more tappable
+          datePickerInput.style.cursor = 'pointer';
+          datePickerInput.style.WebkitTapHighlightColor = 'rgba(147, 112, 219, 0.1)';
+          datePickerInput.style.touchAction = 'manipulation';
+
+          // Create a clickable overlay to ensure taps are captured
+          const parent = datePickerInput.parentElement;
+          let overlay = document.getElementById('date-picker-overlay');
+          
+          if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'date-picker-overlay';
+            overlay.style.position = 'absolute';
+            overlay.style.top = '0';
+            overlay.style.left = '0';
+            overlay.style.right = '0';
+            overlay.style.bottom = '0';
+            overlay.style.zIndex = '5'; // Above input but below datepicker
+            overlay.style.cursor = 'pointer';
             
-            // Force focus and open the date picker
-            setTimeout(() => {
-              // Programmatically click to ensure date picker opens
+            overlay.addEventListener('touchend', (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              
+              // Programmatically trigger the date picker
+              datePickerInput.focus();
               datePickerInput.click();
-            }, 10);
-          }, { passive: false });
+            }, { passive: false });
+            
+            overlay.addEventListener('click', (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              
+              // Programmatically trigger the date picker
+              datePickerInput.focus();
+              datePickerInput.click();
+            });
+            
+            if (parent) {
+              parent.style.position = 'relative';
+              parent.appendChild(overlay);
+            }
+          }
         }
         
         // Ensure date picker container works correctly
         const datePickerContainer = document.querySelector('.react-datepicker');
         if (datePickerContainer) {
-          datePickerContainer.addEventListener('touchend', (e) => {
-            if (e.target.classList.contains('react-datepicker__day--selected') || 
-                e.target.classList.contains('react-datepicker__day')) {
-              // Move focus to the next field after selecting a date
+          // Improve date picker styling for mobile
+          datePickerContainer.classList.add('mobile-date-picker');
+          
+          // Force calendar to be visible
+          datePickerContainer.style.display = 'block';
+          datePickerContainer.style.opacity = '1';
+          datePickerContainer.style.zIndex = '9999';
+          
+          // Ensure days are easily tappable
+          const days = datePickerContainer.querySelectorAll('.react-datepicker__day');
+          days.forEach(day => {
+            day.style.padding = '0.5rem';
+            day.style.margin = '0.2rem';
+            day.style.width = '2.5rem';
+            day.style.height = '2.5rem';
+            day.style.display = 'inline-flex';
+            day.style.alignItems = 'center';
+            day.style.justifyContent = 'center';
+            day.style.touchAction = 'manipulation';
+            
+            // Add touch event listener to each day
+            day.addEventListener('touchend', (e) => {
+              // After selecting a date, move to next field
               setTimeout(() => {
                 const timeSelect = document.querySelector('select[name="time"]');
                 if (timeSelect) {
                   timeSelect.focus();
                 }
               }, 100);
-            }
-          }, { passive: true });
-          
-          // Improve date picker styling for mobile
-          datePickerContainer.classList.add('mobile-date-picker');
+            }, { passive: true });
+          });
+        }
+        
+        // Ensure the popper/popup is visible
+        const datepickerPopper = document.querySelector('.react-datepicker-popper');
+        if (datepickerPopper) {
+          datepickerPopper.style.zIndex = '9999';
+          datepickerPopper.style.position = 'absolute';
+          datepickerPopper.style.inset = '0px auto auto 0px';
+          datepickerPopper.style.transform = 'translate(0px, 40px)';
         }
       };
       
@@ -586,32 +649,31 @@ export default function Home() {
               overflow-wrap: break-word;
             }
             
-            /* Improved date picker for mobile */
-            .mobile-date-picker .react-datepicker__day {
-              padding: 0.5rem;
-              margin: 0.2rem;
-              line-height: 1;
-              width: 2.5rem;
-              height: 2.5rem;
-              display: inline-flex;
-              align-items: center;
-              justify-content: center;
+            /* Improved date picker styles that ensure visibility */
+            .react-datepicker-wrapper {
+              position: relative;
+              width: 100%;
             }
             
-            .mobile-date-picker .react-datepicker__day-name {
-              width: 2.5rem;
-              margin: 0.2rem;
+            .react-datepicker {
+              width: 100% !important;
+              font-size: 1rem !important;
+              box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2) !important;
+              border-radius: 8px !important;
+              border: 1px solid #e5e7eb !important;
             }
             
-            .mobile-date-picker .react-datepicker__header {
-              padding-top: 1rem;
+            .react-datepicker-popper {
+              position: fixed !important;
+              width: 90% !important;
+              max-width: 350px !important;
+              z-index: 9999 !important;
+              top: 50% !important;
+              left: 50% !important;
+              transform: translate(-50%, -50%) !important;
             }
             
-            .mobile-date-picker .react-datepicker__navigation {
-              top: 1rem;
-            }
-            
-            /* Make date picker input more tappable and visually indicate it's interactive */
+            /* Make date picker more tappable and visually indicate it's interactive */
             .react-datepicker__input-container input {
               -webkit-tap-highlight-color: rgba(147, 112, 219, 0.1);
               cursor: pointer;
@@ -623,6 +685,11 @@ export default function Home() {
               padding-right: 40px;
             }
             
+            /* Ensure date picker appears above other content */
+            .date-picker-popper {
+              z-index: 9999 !important;
+            }
+            
             /* Style readonly inputs so they don't look disabled */
             input[readonly] {
               opacity: 1 !important;
@@ -630,51 +697,41 @@ export default function Home() {
               color: #333 !important;
             }
             
-            /* Make the date picker overlay cover more screen space */
-            .react-datepicker-popper {
-              width: 90% !important;
-              max-width: 350px;
-              transform: none !important;
-              left: 50% !important;
-              margin-left: -45% !important;
-              z-index: 9999 !important;
-            }
-            
-            .react-datepicker {
-              width: 100% !important;
+            /* Make the calendar days more tappable */
+            .mobile-date-picker .react-datepicker__day {
+              padding: 0.5rem !important;
+              margin: 0.2rem !important;
+              line-height: 1 !important;
+              width: 2.5rem !important;
+              height: 2.5rem !important;
+              display: inline-flex !important;
+              align-items: center !important;
+              justify-content: center !important;
+              touch-action: manipulation !important;
               font-size: 1rem !important;
-              box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
             }
             
-            /* Fix double-tap issues */
-            button, a, input, select, .react-datepicker__day {
-              touch-action: manipulation;
+            .mobile-date-picker .react-datepicker__day-name {
+              width: 2.5rem !important;
+              margin: 0.2rem !important;
             }
             
-            /* Improve form spacing on mobile */
-            form .mb-4 {
-              margin-bottom: 1.5rem;
+            .mobile-date-picker .react-datepicker__header {
+              padding-top: 1rem !important;
+              background-color: #f3f4f6 !important;
             }
             
-            /* Ensure buttons have proper touch targets */
-            button {
-              transition: transform 0.2s, opacity 0.2s;
+            .mobile-date-picker .react-datepicker__navigation {
+              top: 1rem !important;
+              width: 2rem !important;
+              height: 2rem !important;
             }
             
-            /* Error flash animation for form fields */
-            @keyframes error-flash {
-              0%, 100% { border-color: #f87171; }
-              50% { border-color: #ef4444; box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1); }
-            }
-            
-            .error-flash {
-              animation: error-flash 0.6s ease-in-out 3;
-              border: 2px solid #f87171 !important;
-            }
-            
-            /* Better error handling on mobile */
-            .border-red-400 {
-              border-width: 2px !important;
+            /* Add a clear visual focus state */
+            .react-datepicker__input-container input:focus {
+              outline: none !important;
+              border-color: #9370DB !important;
+              box-shadow: 0 0 0 3px rgba(147, 112, 219, 0.3) !important;
             }
           }
         `}</style>
@@ -1103,17 +1160,40 @@ export default function Home() {
                 placeholderText="Select a date"
                 calendarClassName="bg-white shadow-lg rounded-lg"
                 showPopperArrow={false}
-                wrapperClassName="w-full"
+                wrapperClassName="w-full date-picker-container" // Added a specific class for targeting
                 shouldCloseOnSelect={true}
                 closeOnScroll={true}
                 useWeekdaysShort={true}
-                readOnly={true} // Changed to true for all devices, not just mobile
+                readOnly={true}
                 popperModifiers={{
                   preventOverflow: {
                     enabled: true,
                     escapeWithReference: false,
                     boundariesElement: "viewport"
+                  },
+                  // Add additional modifiers to ensure the calendar is always visible
+                  computeStyle: {
+                    gpuAcceleration: false
+                  },
+                  preventOverflow: {
+                    enabled: true,
+                    boundariesElement: 'viewport',
+                    padding: 20
+                  },
+                  // Force the popper to be positioned correctly
+                  applyStyle: {
+                    enabled: true,
                   }
+                }}
+                popperPlacement="bottom-start"
+                // Add needed props for better mobile support
+                popperClassName="date-picker-popper"
+                onFocus={(e) => {
+                  // Clear any error state but don't interfere with default behavior
+                  handleInputFocus('date');
+                }}
+                onClickOutside={() => {
+                  // Optional: Handle click outside if needed
                 }}
               />
               <AnimatePresence>
