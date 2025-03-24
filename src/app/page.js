@@ -126,59 +126,86 @@ export default function Home() {
         }, { passive: false });
       });
       
-      // Fix for date picker on mobile
-      const fixDatePickerOnMobile = () => {
+      // Improved fix for date picker on mobile
+      const enhanceDatePickerOnMobile = () => {
         const datePickerInput = document.querySelector('.react-datepicker__input-container input');
         if (datePickerInput) {
-          // Make sure single tap works
-          datePickerInput.addEventListener('touchend', (e) => {
-            // Prevent default only if needed to avoid blocking the date picker from opening
-            if (document.activeElement !== e.target) {
-              e.preventDefault();
-              e.target.focus();
-              // Trigger click to open the date picker with a single tap
-              setTimeout(() => {
-                if (document.activeElement === e.target) {
-                  e.target.click();
-                }
-              }, 50);
-            }
-          }, { passive: false });
+          // Clear any existing event listeners to prevent duplicates
+          const newDatePickerInput = datePickerInput.cloneNode(true);
+          if (datePickerInput.parentNode) {
+            datePickerInput.parentNode.replaceChild(newDatePickerInput, datePickerInput);
+          }
           
-          // Ensure date picker closes when a date is selected
+          // Add new event listener for touch events
+          newDatePickerInput.addEventListener('touchend', (e) => {
+            // Don't prevent default to allow the date picker to open naturally
+            newDatePickerInput.focus();
+            setTimeout(() => {
+              newDatePickerInput.click();
+            }, 50);
+          }, { passive: true });
+          
+          // Ensure the date picker is properly styled for mobile
           const datePickerContainer = document.querySelector('.react-datepicker');
           if (datePickerContainer) {
+            datePickerContainer.classList.add('mobile-date-picker');
+            
+            // Add event delegation for date selection
             datePickerContainer.addEventListener('touchend', (e) => {
-              if (e.target.classList.contains('react-datepicker__day--selected') || 
-                  e.target.classList.contains('react-datepicker__day')) {
-                // Force close the date picker and move focus to the next field
+              // Check if a day was clicked
+              if (e.target.classList.contains('react-datepicker__day') || 
+                  e.target.closest('.react-datepicker__day')) {
+                // Allow the default selection to happen
                 setTimeout(() => {
-                  datePickerInput.blur();
-                  // Find the time select element and focus it
+                  // Move focus to the next field after selection
                   const timeSelect = document.querySelector('select[name="time"]');
                   if (timeSelect) {
                     timeSelect.focus();
                   }
-                }, 100);
+                }, 200);
               }
             }, { passive: true });
-            
-            // Improve date picker styling for mobile
-            datePickerContainer.classList.add('mobile-date-picker');
           }
         }
       };
       
-      // Run the fix after a short delay to ensure the date picker is rendered
-      setTimeout(fixDatePickerOnMobile, 500);
+      // Run the enhanced fix after a short delay and whenever the date input is focused
+      setTimeout(enhanceDatePickerOnMobile, 500);
       
       // Also run it when the date picker is opened
       const dateInput = document.querySelector('.react-datepicker-wrapper input');
       if (dateInput) {
         dateInput.addEventListener('focus', () => {
-          setTimeout(fixDatePickerOnMobile, 300);
+          setTimeout(enhanceDatePickerOnMobile, 300);
         });
       }
+      
+      // Add CSS to improve date picker visibility on mobile
+      const style = document.createElement('style');
+      style.textContent = `
+        .react-datepicker-popper {
+          z-index: 9999 !important;
+        }
+        .react-datepicker {
+          font-size: 1.2rem !important;
+          border-radius: 8px !important;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+        }
+        .react-datepicker__day {
+          padding: 0.7rem !important;
+          margin: 0.2rem !important;
+        }
+        .react-datepicker__day--selected {
+          background-color: #9c27b0 !important;
+        }
+        .react-datepicker__day:hover {
+          background-color: #e1bee7 !important;
+        }
+        .mobile-form .react-datepicker-wrapper {
+          width: 100%;
+        }
+      `;
+      document.head.appendChild(style);
       
       // Ensure validation errors are visible on mobile
       const form = document.querySelector('form');
@@ -225,9 +252,86 @@ export default function Home() {
           button.removeEventListener('touchend', () => {});
           button.removeEventListener('touchcancel', () => {});
         });
+        
+        // Remove any added styles
+        const addedStyle = document.querySelector('style:last-of-type');
+        if (addedStyle) {
+          addedStyle.remove();
+        }
       }
     };
   }, [isMobile, selectedTime]);
+
+  // Add specific mobile date picker handling
+  React.useEffect(() => {
+    if (isMobile) {
+      // Create a more robust mobile date picker handler
+      const handleMobileDatePicker = () => {
+        const datePickerInput = document.querySelector('.react-datepicker__input-container input');
+        const datePickerWrapper = document.querySelector('.react-datepicker-wrapper');
+        
+        if (datePickerInput && datePickerWrapper) {
+          // Add a visible tap indicator for mobile users
+          datePickerWrapper.classList.add('mobile-date-wrapper');
+          
+          // Ensure date picker is properly initialized on mobile
+          datePickerInput.addEventListener('click', (e) => {
+            // Force the date picker to open with a single tap
+            if (!document.querySelector('.react-datepicker')) {
+              setTimeout(() => {
+                datePickerInput.click();
+              }, 50);
+            }
+          }, { passive: true });
+          
+          // Add a helper message for mobile users
+          const helperText = document.createElement('div');
+          helperText.className = 'text-xs text-gray-500 mt-1';
+          helperText.textContent = 'Tap to select a date';
+          datePickerWrapper.parentNode.insertBefore(helperText, datePickerWrapper.nextSibling);
+        }
+      };
+      
+      // Run after a short delay to ensure the DOM is ready
+      setTimeout(handleMobileDatePicker, 1000);
+      
+      // Add additional mobile-specific styles
+      const mobileStyles = document.createElement('style');
+      mobileStyles.textContent = `
+        .mobile-date-wrapper {
+          position: relative;
+        }
+        .mobile-date-wrapper::after {
+          content: '📅';
+          position: absolute;
+          right: 10px;
+          top: 50%;
+          transform: translateY(-50%);
+          pointer-events: none;
+        }
+        .react-datepicker__day {
+          touch-action: manipulation;
+        }
+        .react-datepicker__day--selected {
+          background-color: #9c27b0 !important;
+          color: white !important;
+        }
+      `;
+      document.head.appendChild(mobileStyles);
+      
+      return () => {
+        // Clean up
+        if (mobileStyles && mobileStyles.parentNode) {
+          mobileStyles.parentNode.removeChild(mobileStyles);
+        }
+        
+        const helperText = document.querySelector('.text-xs.text-gray-500.mt-1');
+        if (helperText && helperText.parentNode) {
+          helperText.parentNode.removeChild(helperText);
+        }
+      };
+    }
+  }, [isMobile]);
 
   const isWeekday = (date) => {
     const day = date.getDay();
@@ -243,6 +347,7 @@ export default function Home() {
     if (isMobile && date) {
       // Allow a moment for the date to be set before moving focus
       setTimeout(() => {
+        document.activeElement.blur();
         // Find the time select element and focus it
         const timeSelect = document.querySelector('select[name="time"]');
         if (timeSelect) {
@@ -357,6 +462,9 @@ export default function Home() {
     if (!hasError) {
       setIsSubmitting(true);
       try {
+        // Ensure date is properly formatted for both mobile and desktop
+        const dateToSend = startDate instanceof Date ? startDate.toISOString() : new Date(startDate).toISOString();
+        
         const response = await fetch('/api/send-email', {
           method: 'POST',
           headers: {
@@ -365,7 +473,7 @@ export default function Home() {
           body: JSON.stringify({
             name,
             email,
-            date: startDate.toISOString(),
+            date: dateToSend,
             time: selectedTime,
             numberOfPeople: people
           }),
@@ -374,12 +482,24 @@ export default function Home() {
         const data = await response.json();
         
         if (data.success) {
+          // Ensure UI updates properly on both mobile and desktop
           setShowBookingQuote(true);
-          // Optional: Reset form
+          
+          // Reset form consistently
           form.reset();
           setStartDate(null);
           setSelectedTime('');
           setNumberOfPeople('');
+          
+          // On mobile, scroll to the success message
+          if (isMobile) {
+            setTimeout(() => {
+              const successMessage = document.querySelector('.mt-8.p-6.bg-white.rounded-lg');
+              if (successMessage) {
+                successMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }
+            }, 300);
+          }
         } else {
           alert('Failed to submit booking. Please try again.');
         }
@@ -944,14 +1064,6 @@ export default function Home() {
                 onChange={(date) => {
                   handleDateChange(date);
                   handleInputFocus('date');
-                  // Close calendar and move focus on mobile
-                  if (isMobile && date) {
-                    setTimeout(() => {
-                    document.activeElement.blur();
-                      const timeSelect = document.querySelector('select[name="time"]');
-                      if (timeSelect) timeSelect.focus();
-                    }, 100);
-                  }
                 }}
                 minDate={new Date()}
                 filterDate={isWeekday}
@@ -968,8 +1080,19 @@ export default function Home() {
                 readOnly={isMobile}
                 shouldCloseOnSelect={true}
                 disabledKeyboardNavigation={isMobile}
-                closeOnScroll={true}
+                closeOnScroll={false}
                 useWeekdaysShort={true}
+                popperModifiers={{
+                  preventOverflow: {
+                    enabled: true,
+                    escapeWithReference: false,
+                    boundariesElement: 'viewport'
+                  }
+                }}
+                popperPlacement="bottom-start"
+                popperProps={{
+                  positionFixed: true
+                }}
               />
               <AnimatePresence>
                 {dateError && (
@@ -1161,7 +1284,7 @@ export default function Home() {
               }}
             >
               <svg className="w-12 h-12 mx-auto mb-2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path fill="#1877F2" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                <path fill="#1877F2" d="M24 12c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12z"/>
               </svg>
               <span className="block text-sm">Facebook</span>
             </a>
