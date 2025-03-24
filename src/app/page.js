@@ -165,6 +165,9 @@ export default function Home() {
           datePickerInput.removeEventListener('touchend', undefined);
           datePickerInput.removeEventListener('click', undefined);
           
+          // Make input readonly to prevent keyboard on mobile
+          datePickerInput.readOnly = true;
+          
           // Add new listener that ensures the date picker opens on first click/tap
           datePickerInput.addEventListener('touchend', (e) => {
             e.preventDefault(); // Prevent default to handle manually
@@ -584,6 +587,7 @@ export default function Home() {
               overflow-wrap: break-word;
             }
             
+            /* Improved date picker for mobile */
             .mobile-date-picker .react-datepicker__day {
               padding: 0.5rem;
               margin: 0.2rem;
@@ -608,11 +612,39 @@ export default function Home() {
               top: 1rem;
             }
             
-            /* Make date picker more tappable on mobile */
+            /* Make date picker input more tappable and visually indicate it's interactive */
             .react-datepicker__input-container input {
               -webkit-tap-highlight-color: rgba(147, 112, 219, 0.1);
               cursor: pointer;
               touch-action: manipulation;
+              appearance: none;
+              background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239370DB' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='16' y1='2' x2='16' y2='6'%3E%3C/line%3E%3Cline x1='8' y1='2' x2='8' y2='6'%3E%3C/line%3E%3Cline x1='3' y1='10' x2='21' y2='10'%3E%3C/line%3E%3C/svg%3E");
+              background-repeat: no-repeat;
+              background-position: right 10px center;
+              padding-right: 40px;
+            }
+            
+            /* Style readonly inputs so they don't look disabled */
+            input[readonly] {
+              opacity: 1 !important;
+              background-color: white !important;
+              color: #333 !important;
+            }
+            
+            /* Make the date picker overlay cover more screen space */
+            .react-datepicker-popper {
+              width: 90% !important;
+              max-width: 350px;
+              transform: none !important;
+              left: 50% !important;
+              margin-left: -45% !important;
+              z-index: 9999 !important;
+            }
+            
+            .react-datepicker {
+              width: 100% !important;
+              font-size: 1rem !important;
+              box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
             }
             
             /* Fix double-tap issues */
@@ -1069,6 +1101,7 @@ export default function Home() {
                 shouldCloseOnSelect={true}
                 closeOnScroll={true}
                 useWeekdaysShort={true}
+                readOnly={isMobile} // Add readonly for mobile to prevent keyboard
                 popperModifiers={{
                   preventOverflow: {
                     enabled: true,
