@@ -73,28 +73,7 @@ export default function Header() {
     if (typeof window !== 'undefined' && window.innerWidth < 768) {
       const menuButtons = document.querySelectorAll('.mobile-menu-container button');
       
-      // Remove any existing event listeners first to prevent duplicates
       menuButtons.forEach(button => {
-        const newButton = button.cloneNode(true);
-        button.parentNode.replaceChild(newButton, button);
-      });
-
-      // Re-select the buttons after replacing them
-      const refreshedButtons = document.querySelectorAll('.mobile-menu-container button');
-      
-      refreshedButtons.forEach(button => {
-        // Get the section ID from the button's data attribute
-        const sectionId = button.getAttribute('data-section');
-        
-        // Replace the onClick handler directly
-        button.onclick = (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          if (sectionId) {
-            scrollToSection(sectionId);
-          }
-        };
-        
         // Add active state styling for better touch feedback
         button.addEventListener('touchstart', () => {
           button.classList.add('touch-active');
@@ -102,10 +81,10 @@ export default function Header() {
         
         button.addEventListener('touchend', (e) => {
           button.classList.remove('touch-active');
-          // Prevent default to avoid any double-tap issues
-          e.preventDefault();
-          // Directly trigger the scroll function
+          // Get the section ID from the button's data attribute
+          const sectionId = button.getAttribute('data-section');
           if (sectionId) {
+            e.preventDefault();
             scrollToSection(sectionId);
           }
         }, { passive: false });
@@ -114,6 +93,14 @@ export default function Header() {
           button.classList.remove('touch-active');
         }, { passive: true });
       });
+      
+      return () => {
+        menuButtons.forEach(button => {
+          button.removeEventListener('touchstart', () => {});
+          button.removeEventListener('touchend', () => {});
+          button.removeEventListener('touchcancel', () => {});
+        });
+      };
     }
   }, [mobileMenuOpen]);
 
@@ -268,6 +255,7 @@ export default function Header() {
             <div className="flex flex-col">
               <button 
                 data-section="home-section"
+                onClick={() => scrollToSection('home-section')} 
                 className={`text-left flex items-center py-5 px-5 border-b border-gray-100 ${
                   activeSection === 'home-section' ? 'text-royal-purple bg-cultured' : 'text-gray-700 hover:text-royal-purple'
                 }`}
@@ -276,6 +264,7 @@ export default function Header() {
               </button>
               <button 
                 data-section="classes-section"
+                onClick={() => scrollToSection('classes-section')} 
                 className={`text-left flex items-center py-5 px-5 border-b border-gray-100 ${
                   activeSection === 'classes-section' ? 'text-royal-purple bg-cultured' : 'text-gray-700 hover:text-royal-purple'
                 }`}
@@ -284,6 +273,7 @@ export default function Header() {
               </button>
               <button 
                 data-section="booking-section"
+                onClick={() => scrollToSection('booking-section')} 
                 className={`text-left flex items-center py-5 px-5 border-b border-gray-100 ${
                   activeSection === 'booking-section' ? 'text-royal-purple bg-cultured' : 'text-gray-700 hover:text-royal-purple'
                 }`}
@@ -292,6 +282,7 @@ export default function Header() {
               </button>
               <button 
                 data-section="location-section"
+                onClick={() => scrollToSection('location-section')} 
                 className={`text-left flex items-center py-5 px-5 border-b border-gray-100 ${
                   activeSection === 'location-section' ? 'text-royal-purple bg-cultured' : 'text-gray-700 hover:text-royal-purple'
                 }`}
