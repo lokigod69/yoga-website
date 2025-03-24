@@ -156,8 +156,30 @@ export default function Home() {
         }, { passive: false });
       });
       
-      // Ensure date picker closes when a date is selected
+      // Fix date picker on mobile - ensure single click works
       const fixDatePickerOnMobile = () => {
+        // Handle date picker input field
+        const datePickerInput = document.querySelector('.react-datepicker-wrapper input');
+        if (datePickerInput) {
+          // Remove any existing listeners to avoid duplicates
+          datePickerInput.removeEventListener('touchend', undefined);
+          datePickerInput.removeEventListener('click', undefined);
+          
+          // Add new listener that ensures the date picker opens on first click/tap
+          datePickerInput.addEventListener('touchend', (e) => {
+            e.preventDefault(); // Prevent default to handle manually
+            e.stopPropagation(); // Stop event from bubbling
+            
+            // Force focus and open the date picker
+            datePickerInput.focus();
+            setTimeout(() => {
+              // Programmatically click to ensure date picker opens
+              datePickerInput.click();
+            }, 10);
+          }, { passive: false });
+        }
+        
+        // Ensure date picker container works correctly
         const datePickerContainer = document.querySelector('.react-datepicker');
         if (datePickerContainer) {
           datePickerContainer.addEventListener('touchend', (e) => {
@@ -187,6 +209,21 @@ export default function Home() {
         dateInput.addEventListener('focus', () => {
           setTimeout(fixDatePickerOnMobile, 300);
         });
+      }
+      
+      // Fix submit button to ensure it works with a single click
+      const submitButton = document.querySelector('button[type="submit"]');
+      if (submitButton) {
+        submitButton.addEventListener('touchend', (e) => {
+          // Prevent ghost clicks and unintended double-tap
+          e.preventDefault();
+          
+          // Submit the form immediately on first tap
+          const form = submitButton.closest('form');
+          if (form && !isSubmitting) {
+            form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+          }
+        }, { passive: false });
       }
       
       // Ensure validation errors are visible on mobile
@@ -234,9 +271,19 @@ export default function Home() {
           button.removeEventListener('touchend', () => {});
           button.removeEventListener('touchcancel', () => {});
         });
+        
+        const datePickerInput = document.querySelector('.react-datepicker-wrapper input');
+        if (datePickerInput) {
+          datePickerInput.removeEventListener('touchend', () => {});
+        }
+        
+        const submitButton = document.querySelector('button[type="submit"]');
+        if (submitButton) {
+          submitButton.removeEventListener('touchend', () => {});
+        }
       }
     };
-  }, [isMobile, selectedTime]);
+  }, [isMobile, selectedTime, isSubmitting]);
 
   const isWeekday = (date) => {
     const day = date.getDay();
@@ -565,6 +612,12 @@ export default function Home() {
             .react-datepicker__input-container input {
               -webkit-tap-highlight-color: rgba(147, 112, 219, 0.1);
               cursor: pointer;
+              touch-action: manipulation;
+            }
+            
+            /* Fix double-tap issues */
+            button, a, input, select, .react-datepicker__day {
+              touch-action: manipulation;
             }
             
             /* Improve form spacing on mobile */
@@ -1016,6 +1069,13 @@ export default function Home() {
                 shouldCloseOnSelect={true}
                 closeOnScroll={true}
                 useWeekdaysShort={true}
+                popperModifiers={{
+                  preventOverflow: {
+                    enabled: true,
+                    escapeWithReference: false,
+                    boundariesElement: "viewport"
+                  }
+                }}
               />
               <AnimatePresence>
                 {dateError && (

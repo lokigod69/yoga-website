@@ -66,6 +66,35 @@ const LayoutWithHeader = ({ children }) => {
     document.addEventListener('mousedown', handleClickOutside);
     document.addEventListener('touchstart', handleClickOutside, { passive: true });
 
+    // Fix for sandwich menu on mobile - ensure single tap works
+    if (isMobile) {
+      const fixMobileMenuButton = () => {
+        const menuButton = document.querySelector('.md\\:hidden button');
+        if (menuButton) {
+          // Remove ghost tap delays and ensure smooth behavior
+          menuButton.style.touchAction = 'manipulation';
+          menuButton.style.WebkitTapHighlightColor = 'rgba(0,0,0,0)';
+          
+          // Ensure mobile menu items also respond to a single tap
+          const menuItems = document.querySelectorAll('.mobile-menu-container button');
+          menuItems.forEach(item => {
+            item.style.touchAction = 'manipulation';
+            item.style.WebkitTapHighlightColor = 'rgba(0,0,0,0)';
+          });
+        }
+      };
+      
+      // Run the fix initially
+      fixMobileMenuButton();
+      
+      // Also run when window resizes
+      window.addEventListener('resize', fixMobileMenuButton);
+      
+      return () => {
+        window.removeEventListener('resize', fixMobileMenuButton);
+      };
+    }
+
     // Clean up
     return () => {
       window.removeEventListener('scroll', handleScroll);
@@ -73,7 +102,7 @@ const LayoutWithHeader = ({ children }) => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('touchstart', handleClickOutside);
     };
-  }, [isOpen]);
+  }, [isOpen, isMobile]);
 
   const scrollToSection = (id) => {
     setIsOpen(false);
@@ -148,10 +177,15 @@ const LayoutWithHeader = ({ children }) => {
             <div className="md:hidden z-20">
               <button
                 onClick={() => setIsOpen(!isOpen)}
+                onTouchEnd={(e) => {
+                  e.preventDefault(); // Prevent default to avoid double-click issue
+                  setIsOpen(!isOpen);
+                }}
                 className={`focus:outline-none transition-all p-2 -mr-2 rounded-full ${
                   isOpen ? 'bg-gray-100 bg-opacity-80' : ''
                 } ${scrolled ? 'text-royal-purple' : 'text-white'}`}
                 aria-label={isOpen ? "Close menu" : "Open menu"}
+                style={{ WebkitTapHighlightColor: 'rgba(0,0,0,0)', touchAction: 'manipulation' }}
               >
                 <motion.svg
                   className="w-7 h-7"
@@ -231,7 +265,7 @@ const LayoutWithHeader = ({ children }) => {
               animate="open"
               exit="closed"
               transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-              className="md:hidden fixed inset-0 top-[57px] bg-white z-10 overflow-auto pb-20"
+              className="mobile-menu-container md:hidden fixed inset-0 top-[57px] bg-white z-10 overflow-auto pb-20"
             >
               <nav className="container mx-auto px-4 py-6 space-y-3">
                 {[
@@ -262,6 +296,29 @@ const LayoutWithHeader = ({ children }) => {
                         }, 50);
                       }
                     }}
+                    onTouchEnd={(e) => {
+                      // Prevent default to avoid double tap issues
+                      e.preventDefault();
+                      
+                      const element = document.getElementById(item.id);
+                      if (element) {
+                        // Close menu
+                        setIsOpen(false);
+                        // Set active section immediately
+                        setActiveSection(item.id);
+                        // Calculate scroll position
+                        const headerHeight = headerRef.current ? headerRef.current.offsetHeight : 0;
+                        const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
+                        // Small delay to allow menu to start closing
+                        setTimeout(() => {
+                          window.scrollTo({
+                            top: elementPosition - headerHeight,
+                            behavior: 'smooth'
+                          });
+                        }, 50);
+                      }
+                    }}
+                    style={{ WebkitTapHighlightColor: 'rgba(0,0,0,0)', touchAction: 'manipulation' }}
                     whileTap={{ scale: 0.98, backgroundColor: "rgba(147, 112, 219, 0.1)" }}
                     className={`block w-full py-3 px-4 text-left rounded-lg text-lg flex items-center ${
                       activeSection === item.id 
