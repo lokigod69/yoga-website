@@ -61,6 +61,7 @@ const center = {
 
 export default function Home() {
   const [startDate, setStartDate] = React.useState(null);
+  const [selectedDay, setSelectedDay] = React.useState('');
   const [selectedTime, setSelectedTime] = React.useState('');
   const [numberOfPeople, setNumberOfPeople] = React.useState('');
   const [showDateAnimation, setShowDateAnimation] = React.useState(false);
@@ -72,10 +73,11 @@ export default function Home() {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [currentLetterIndex, setCurrentLetterIndex] = React.useState(0);
   const [text1, setText1] = React.useState("Where consciousness meets movement");
-  const [dateError, setDateError] = React.useState(false);
+  const [dayError, setDayError] = React.useState(false);
   const [timeError, setTimeError] = React.useState(false);
   const [numberOfPeopleError, setNumberOfPeopleError] = React.useState(false);
   const [isMobile, setIsMobile] = React.useState(false);
+  const [availableDays, setAvailableDays] = React.useState([]);
 
   // State for contact form
   const [contactName, setContactName] = React.useState('');
@@ -84,6 +86,55 @@ export default function Home() {
   const [contactMessage, setContactMessage] = React.useState('');
   const [isContactSubmitting, setIsContactSubmitting] = React.useState(false);
   const [showContactThankYou, setShowContactThankYou] = React.useState(false);
+
+  // Generate available days (next 6 days excluding Sundays)
+  React.useEffect(() => {
+    const days = [];
+    const today = new Date();
+    let count = 0;
+    let daysAdded = 0;
+    
+    // Add up to 6 available days
+    while (daysAdded < 6) {
+      const nextDate = new Date();
+      nextDate.setDate(today.getDate() + count);
+      
+      // Skip Sundays (day 0)
+      if (nextDate.getDay() !== 0) {
+        days.push({
+          value: nextDate.toISOString(),
+          label: formatDayLabel(nextDate)
+        });
+        daysAdded++;
+      }
+      count++;
+    }
+    
+    setAvailableDays(days);
+  }, []);
+  
+  // Format day label as "Monday, 25th March"
+  const formatDayLabel = (date) => {
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    
+    const dayName = days[date.getDay()];
+    const dayNumber = date.getDate();
+    const monthName = months[date.getMonth()];
+    
+    // Add ordinal suffix to day number (1st, 2nd, 3rd, etc.)
+    const getOrdinalSuffix = (day) => {
+      if (day > 3 && day < 21) return 'th';
+      switch (day % 10) {
+        case 1: return 'st';
+        case 2: return 'nd';
+        case 3: return 'rd';
+        default: return 'th';
+      }
+    };
+    
+    return `${dayName}, ${dayNumber}${getOrdinalSuffix(dayNumber)} ${monthName}`;
+  };
 
   // Scroll to top on page refresh
   React.useEffect(() => {
@@ -355,13 +406,14 @@ export default function Home() {
     return day !== 0; // Only exclude Sunday (0)
   };
 
-  const handleDateChange = (date) => {
-    setStartDate(date);
+  const handleDayChange = (e) => {
+    setSelectedDay(e.target.value);
+    setStartDate(new Date(e.target.value)); // Set the actual date for email sending
     setShowDateAnimation(true);
     setTimeout(() => setShowDateAnimation(false), 2000);
     
     // On mobile, ensure focus moves to the next field after selection
-    if (isMobile && date) {
+    if (isMobile && e.target.value) {
       // Allow a moment for the date to be set before moving focus
       setTimeout(() => {
         // Find the time select element and focus it
@@ -372,9 +424,9 @@ export default function Home() {
       }, 300);
     }
     
-    // Clear date error if a date is selected
-    if (date) {
-      setDateError(false);
+    // Clear day error if a day is selected
+    if (e.target.value) {
+      setDayError(false);
     }
   };
 
@@ -412,7 +464,7 @@ export default function Home() {
   const handleInputFocus = (field) => {
     if (field === 'name') setNameError(false);
     if (field === 'email') setEmailError(false);
-    if (field === 'date') setDateError(false);
+    if (field === 'day') setDayError(false);
     if (field === 'time') setTimeError(false);
     if (field === 'numberOfPeople') setNumberOfPeopleError(false);
   };
@@ -427,7 +479,7 @@ export default function Home() {
     // Reset all error states
     setNameError(false);
     setEmailError(false);
-    setDateError(false);
+    setDayError(false);
     setTimeError(false);
     setNumberOfPeopleError(false);
     
@@ -445,10 +497,10 @@ export default function Home() {
       hasError = true;
       if (!firstErrorField) firstErrorField = 'input[name="email"]';
     }
-    if (!startDate) {
-      setDateError(true);
+    if (!selectedDay) {
+      setDayError(true);
       hasError = true;
-      if (!firstErrorField) firstErrorField = '.react-datepicker-wrapper';
+      if (!firstErrorField) firstErrorField = 'select[name="day"]';
     }
     if (!selectedTime) {
       setTimeError(true);
@@ -493,6 +545,10 @@ export default function Home() {
     if (!hasError) {
       setIsSubmitting(true);
       try {
+        // Find the selected day's label for the quote
+        const selectedDayObj = availableDays.find(day => day.value === selectedDay);
+        const dayLabel = selectedDayObj ? selectedDayObj.label : '';
+        
         const response = await fetch('/api/send-email', {
           method: 'POST',
           headers: {
@@ -502,6 +558,7 @@ export default function Home() {
             name,
             email,
             date: startDate.toISOString(),
+            dayLabel: dayLabel, // Send the formatted day label
             time: selectedTime,
             numberOfPeople: people
           }),
@@ -514,6 +571,7 @@ export default function Home() {
           // Optional: Reset form
           form.reset();
           setStartDate(null);
+          setSelectedDay('');
           setSelectedTime('');
           setNumberOfPeople('');
         } else {
@@ -1145,59 +1203,26 @@ export default function Home() {
               )}
             </div>
             <div className="relative mb-4">
-              <DatePicker
-                selected={startDate}
-                onChange={(date) => {
-                  handleDateChange(date);
-                  handleInputFocus('date');
-                }}
-                minDate={new Date()}
-                filterDate={isWeekday}
-                dateFormat="MMMM d, yyyy"
+              <select 
                 className={`w-full p-3 rounded-lg border transition-colors ${
-                  dateError ? 'border-red-400 border-2' : 'border-gray-300'
+                  dayError ? 'border-red-400 border-2' : 'border-gray-300'
                 }`}
-                placeholderText="Select a date"
-                calendarClassName="bg-white shadow-lg rounded-lg"
-                showPopperArrow={false}
-                wrapperClassName="w-full date-picker-container" // Added a specific class for targeting
-                shouldCloseOnSelect={true}
-                closeOnScroll={true}
-                useWeekdaysShort={true}
-                readOnly={true}
-                popperModifiers={{
-                  preventOverflow: {
-                    enabled: true,
-                    escapeWithReference: false,
-                    boundariesElement: "viewport"
-                  },
-                  // Add additional modifiers to ensure the calendar is always visible
-                  computeStyle: {
-                    gpuAcceleration: false
-                  },
-                  preventOverflow: {
-                    enabled: true,
-                    boundariesElement: 'viewport',
-                    padding: 20
-                  },
-                  // Force the popper to be positioned correctly
-                  applyStyle: {
-                    enabled: true,
-                  }
-                }}
-                popperPlacement="bottom-start"
-                // Add needed props for better mobile support
-                popperClassName="date-picker-popper"
-                onFocus={(e) => {
-                  // Clear any error state but don't interfere with default behavior
-                  handleInputFocus('date');
-                }}
-                onClickOutside={() => {
-                  // Optional: Handle click outside if needed
-                }}
-              />
+                onChange={handleDayChange}
+                onClick={() => handleInputFocus('day')}
+                onTouchStart={() => handleInputFocus('day')}
+                value={selectedDay}
+                name="day"
+                style={{ backgroundColor: 'transparent' }}
+              >
+                <option value="">Select Day</option>
+                {availableDays.map((day) => (
+                  <option key={day.value} value={day.value}>
+                    {day.label}
+                  </option>
+                ))}
+              </select>
               <AnimatePresence>
-                {dateError && (
+                {dayError && (
                   <motion.div
                     initial={{ scale: 0, rotate: -180 }}
                     animate={{ scale: 1, rotate: 0 }}
@@ -1214,9 +1239,9 @@ export default function Home() {
                   </motion.div>
                 )}
               </AnimatePresence>
-              {dateError && (
+              {dayError && (
                 <div className="text-red-500 text-xs mt-1 md:hidden block">
-                  Please select a date
+                  Please select a day
                 </div>
               )}
             </div>
