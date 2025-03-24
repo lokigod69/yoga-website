@@ -48,11 +48,11 @@ export async function POST(request) {
       subject: 'Yoga Class Booking Confirmation',
       html: `
         <h2>Yoga Class Booking Confirmation</h2>
-        <p>Hello ${name},</p>
+        <p>Hello,</p>
         <p>Thank you for booking with us. Here are your booking details:</p>
         <p><strong>Date:</strong> ${formattedDate}</p>
         <p><strong>Time:</strong> ${time === 'morning' ? '10:00 AM' : '5:00 PM'}</p>
-        <p><strong>Location:</strong> Eagles Nest, Biking, Dauis, Bohol</p>
+        <p><strong>Location:</strong> Eagle Nest, Biking Dauis, Bohol</p>
         <p><strong>Price:</strong> Php 350.00</p>
         <p></p>
         <p><strong>Name:</strong> ${name}</p>
