@@ -113,8 +113,15 @@ const LayoutWithHeader = ({ children }) => {
         // Calculate header height to account for fixed header
         const headerHeight = headerRef.current ? headerRef.current.offsetHeight : 0;
         const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
+        
+        // Add extra offset for the booking section to position it better
+        let extraOffset = 0;
+        if (id === 'booking-section') {
+          extraOffset = 20; // Add extra space to ensure form is visible at the top
+        }
+        
         window.scrollTo({
-          top: elementPosition - headerHeight,
+          top: elementPosition - headerHeight - extraOffset,
           behavior: 'smooth'
         });
       }, isMobile ? 300 : 0);

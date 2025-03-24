@@ -722,7 +722,16 @@ export default function Home() {
                 e.preventDefault(); // Prevent any default behavior
                 const bookingSection = document.getElementById('booking-section');
                 if (bookingSection) {
-                  bookingSection.scrollIntoView({ behavior: 'smooth' });
+                  // Calculate header height to account for fixed header
+                  const header = document.querySelector('header');
+                  const headerHeight = header ? header.offsetHeight : 0;
+                  const elementPosition = bookingSection.getBoundingClientRect().top + window.pageYOffset;
+                  
+                  // Scroll with offset to position the section properly at the top
+                  window.scrollTo({
+                    top: elementPosition - headerHeight - 20, // Add extra offset for better positioning
+                    behavior: 'smooth'
+                  });
                 }
               }} 
               className="bg-royal-purple text-white px-6 py-3 rounded-full hover:bg-lilac transition duration-300"
