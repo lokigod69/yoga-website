@@ -130,20 +130,35 @@ export default function Home() {
       const enhanceDatePickerOnMobile = () => {
         const datePickerInput = document.querySelector('.react-datepicker__input-container input');
         if (datePickerInput) {
+          // Set attributes to prevent keyboard and autofill
+          datePickerInput.setAttribute('inputmode', 'none');
+          datePickerInput.setAttribute('autocomplete', 'off');
+          datePickerInput.setAttribute('readonly', 'readonly');
+          
           // Clear any existing event listeners to prevent duplicates
           const newDatePickerInput = datePickerInput.cloneNode(true);
           if (datePickerInput.parentNode) {
             datePickerInput.parentNode.replaceChild(newDatePickerInput, datePickerInput);
           }
           
-          // Add new event listener for touch events
-          newDatePickerInput.addEventListener('touchend', (e) => {
-            // Don't prevent default to allow the date picker to open naturally
+          // Add comprehensive touch event handling
+          newDatePickerInput.addEventListener('touchstart', (e) => {
+            // Explicitly prevent default behavior to stop keyboard/autofill
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Add visual feedback
+            newDatePickerInput.classList.add('touch-highlight');
+            setTimeout(() => {
+              newDatePickerInput.classList.remove('touch-highlight');
+            }, 300);
+            
+            // Focus and trigger click after a short delay
             newDatePickerInput.focus();
             setTimeout(() => {
               newDatePickerInput.click();
             }, 50);
-          }, { passive: true });
+          }, { passive: false });
           
           // Ensure the date picker is properly styled for mobile
           const datePickerContainer = document.querySelector('.react-datepicker');
@@ -203,6 +218,51 @@ export default function Home() {
         }
         .mobile-form .react-datepicker-wrapper {
           width: 100%;
+        }
+        
+        /* Additional styles to prevent keyboard on mobile */
+        .react-datepicker__input-container input {
+          -webkit-appearance: none !important;
+          -moz-appearance: none !important;
+          appearance: none !important;
+          -webkit-tap-highlight-color: transparent !important;
+        }
+        
+        /* Ensure proper positioning on mobile */
+        @media (max-width: 768px) {
+          .react-datepicker-popper {
+            transform: translate3d(0, 0, 0) !important;
+            position: fixed !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) !important;
+            width: 90% !important;
+            max-width: 320px !important;
+          }
+          
+          .react-datepicker {
+            width: 100% !important;
+          }
+          
+          .react-datepicker__month-container {
+            width: 100% !important;
+          }
+          
+          .react-datepicker__triangle {
+            display: none !important;
+          }
+          
+          /* Add overlay for better focus */
+          .react-datepicker-popper::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0,0,0,0.5);
+            z-index: -1;
+          }
         }
       `;
       document.head.appendChild(style);
@@ -271,24 +331,45 @@ export default function Home() {
         const datePickerWrapper = document.querySelector('.react-datepicker-wrapper');
         
         if (datePickerInput && datePickerWrapper) {
+          // Set critical attributes to prevent keyboard
+          datePickerInput.setAttribute('inputmode', 'none');
+          datePickerInput.setAttribute('autocomplete', 'off');
+          
           // Add a visible tap indicator for mobile users
           datePickerWrapper.classList.add('mobile-date-wrapper');
           
           // Ensure date picker is properly initialized on mobile
-          datePickerInput.addEventListener('click', (e) => {
-            // Force the date picker to open with a single tap
-            if (!document.querySelector('.react-datepicker')) {
-              setTimeout(() => {
-                datePickerInput.click();
-              }, 50);
-            }
-          }, { passive: true });
+          datePickerInput.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Focus and trigger click after a short delay
+            datePickerInput.focus();
+            setTimeout(() => {
+              datePickerInput.click();
+            }, 50);
+          }, { passive: false });
           
           // Add a helper message for mobile users
           const helperText = document.createElement('div');
           helperText.className = 'text-xs text-gray-500 mt-1';
           helperText.textContent = 'Tap to select a date';
           datePickerWrapper.parentNode.insertBefore(helperText, datePickerWrapper.nextSibling);
+          
+          // Add event delegation for date selection in the calendar
+          document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('react-datepicker__day') || 
+                e.target.closest('.react-datepicker__day')) {
+              // Allow a moment for the date to be selected
+              setTimeout(() => {
+                // Move focus to the next field after selection
+                const timeSelect = document.querySelector('select[name="time"]');
+                if (timeSelect) {
+                  timeSelect.focus();
+                }
+              }, 200);
+            }
+          }, { passive: true });
         }
       };
       
@@ -315,6 +396,31 @@ export default function Home() {
         .react-datepicker__day--selected {
           background-color: #9c27b0 !important;
           color: white !important;
+        }
+        .mobile-calendar {
+          font-size: 1.2rem !important;
+        }
+        .mobile-calendar .react-datepicker__day {
+          padding: 0.7rem !important;
+          margin: 0.2rem !important;
+          width: 2.5rem !important;
+          height: 2.5rem !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+        }
+        .mobile-calendar .react-datepicker__day-name {
+          width: 2.5rem !important;
+          margin: 0.2rem !important;
+        }
+        .mobile-calendar .react-datepicker__header {
+          padding-top: 1rem !important;
+        }
+        .mobile-calendar .react-datepicker__navigation {
+          top: 1rem !important;
+        }
+        .react-datepicker-popper {
+          z-index: 9999 !important;
         }
       `;
       document.head.appendChild(mobileStyles);
@@ -778,179 +884,106 @@ export default function Home() {
             
             <div className="flex justify-center mt-8">
               <motion.div
-                whileHover={{ scale: 1.05 }}
-                className="rounded-lg overflow-hidden shadow-md max-w-xs"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8 }}
+                className="bg-cultured p-8 rounded-lg shadow-md max-w-lg w-full text-center"
               >
-                <Image src="/yoga-pose-1.jpg" alt="Yoga Pose" width={300} height={300} className="w-full h-auto" />
+                <h3 className="text-2xl font-bold mb-4 text-center">Drop-in Sessions</h3>
+                <p className="text-xl mb-2 text-center">Monday to Saturday</p>
+                <p className="text-lg mb-2 text-center">10:00 - 11:00 AM<br/>5:00 - 6:00 PM</p>
+                <p className="text-lg mb-4 text-center">@ 350 php</p>
+                <p className="text-base text-center">
+                  <button 
+                    onClick={() => {
+                      const bookingSection = document.getElementById('booking-section');
+                      if (bookingSection) {
+                        // Calculate header height to account for fixed header
+                        const header = document.querySelector('header');
+                        const headerHeight = header ? header.offsetHeight : 0;
+                        const elementPosition = bookingSection.getBoundingClientRect().top + window.pageYOffset;
+                        window.scrollTo({
+                          top: elementPosition - headerHeight,
+                          behavior: 'smooth'
+                        });
+                      }
+                    }} 
+                    className="text-royal-purple font-medium hover:underline focus:outline-none"
+                  >
+                    Book your drop-in session today.
+                  </button>
+                </p>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8 }}
+                className="bg-cultured p-8 rounded-lg shadow-md max-w-lg w-full"
+              >
+                <h3 className="text-2xl font-bold mb-4 text-center">Private Sessions</h3>
+                <h4 className="text-xl text-royal-purple mb-4 text-center italic">Transform Your Practice, Transform Your Life</h4>
+                <p className="text-base mb-4">
+                  Discover the power of personalized attention in your yoga journey. Our private sessions are
+                  tailored exclusively to your body, goals, and schedule—no cookie-cutter sequences, no
+                  distractions, just pure, focused growth.
+                </p>
+                <p className="text-base mb-4">
+                  Whether you're touching your toes for the first time or continuing your practice, our session
+                  meets exactly where you are. Unlock your full potential in a supportive space where every
+                  breath, every movement, and every moment are designed just for you.
+                </p>
+                <p className="text-base mb-4">
+                  Your personal transformation begins here. <button 
+                    onClick={() => {
+                      const locationSection = document.getElementById('location-section');
+                      if (locationSection) {
+                        // Calculate header height to account for fixed header
+                        const header = document.querySelector('header');
+                        const headerHeight = header ? header.offsetHeight : 0;
+                        const elementPosition = locationSection.getBoundingClientRect().top + window.pageYOffset;
+                        window.scrollTo({
+                          top: elementPosition - headerHeight,
+                          behavior: 'smooth'
+                        });
+                      }
+                    }}
+                    className="text-royal-purple font-medium hover:underline focus:outline-none"
+                  >
+                    Book your private session today.
+                  </button>
+                </p>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.2 }}
+                className="bg-cultured p-8 rounded-lg shadow-md max-w-lg w-full"
+              >
+                <h3 className="text-2xl font-bold mb-4 text-center">Online Sessions</h3>
+                <h4 className="text-xl text-royal-purple mb-4 text-center italic">Yoga Anywhere, Anytime: Your Practice, Your Space</h4>
+                <p className="text-base mb-4">
+                  Transform any corner of your home into a sanctuary of strength and serenity with our online
+                  yoga sessions. I'll be guiding your practice in real-time, delivering personalized attention
+                  through your screen as if they were right beside you.
+                </p>
+                <p className="text-base mb-4">
+                  No commute, no crowded studios—just authentic yoga that fits your schedule, your level, and
+                  your goals. Whether you're a curious beginner or dedicated practitioner, our virtual sessions
+                  deliver the perfect balance of challenge and support.
+                </p>
+                <p className="text-base mb-4">
+                  Roll out your mat, click connect, and discover the freedom of practicing exactly how and when you need it most. <button 
+                    onClick={() => document.getElementById('location-section').scrollIntoView({ behavior: 'smooth' })}
+                    className="text-royal-purple font-medium hover:underline focus:outline-none"
+                  >
+                    Book your online session today.
+                  </button>
+                </p>
               </motion.div>
             </div>
           </motion.div>
-        </div>
-      </section>
-
-      {/* About Section */}
-      <section id="about" className="py-12 bg-cultured">
-        <div className="container mx-auto px-4">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="text-3xl font-playfair text-center mb-8"
-          >
-            About Us
-          </motion.h2>
-          <p className="text-lg text-center max-w-2xl mx-auto mb-12">
-            We offer a peaceful space for yoga practice, blending nature-inspired techniques with expert guidance to help you find balance and strength.
-          </p>
-          <div className="mt-8 flex justify-center mb-16">
-            <Image src="/yoga-pose.png" alt="Yoga Pose" width={300} height={200} className="rounded-lg" />
-          </div>
-
-          {/* Testimonials Carousel */}
-          <div className="max-w-3xl mx-auto mt-16">
-            <div className="relative h-48 overflow-hidden">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={currentTestimonial}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.5 }}
-                  className="absolute w-full text-center px-4"
-                >
-                  <p className="text-lg italic mb-4">"{testimonials[currentTestimonial].quote}"</p>
-                  <p className="text-royal-purple font-medium">— {testimonials[currentTestimonial].name}</p>
-                </motion.div>
-              </AnimatePresence>
-            </div>
-            <div className="flex justify-center gap-2 mt-6">
-              {testimonials.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => setCurrentTestimonial(index)}
-                  className={`w-2 h-2 rounded-full transition-colors duration-300 ${
-                    index === currentTestimonial ? 'bg-royal-purple' : 'bg-gray-300'
-                  }`}
-                  aria-label={`Go to quote ${index + 1}`}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Schedule Section */}
-      <section id="classes-section" className="py-12 bg-timberwolf">
-        <div className="container mx-auto px-4">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="text-3xl font-playfair text-center mb-8"
-          >
-            Class Schedule
-          </motion.h2>
-          <div className="flex flex-col items-center gap-6">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              className="bg-cultured p-8 rounded-lg shadow-md max-w-lg w-full text-center"
-            >
-              <h3 className="text-2xl font-bold mb-4 text-center">Drop-in Sessions</h3>
-              <p className="text-xl mb-2 text-center">Monday to Saturday</p>
-              <p className="text-lg mb-2 text-center">10:00 - 11:00 AM<br/>5:00 - 6:00 PM</p>
-              <p className="text-lg mb-4 text-center">@ 350 php</p>
-              <p className="text-base text-center">
-                <button 
-                  onClick={() => {
-                    const bookingSection = document.getElementById('booking-section');
-                    if (bookingSection) {
-                      // Calculate header height to account for fixed header
-                      const header = document.querySelector('header');
-                      const headerHeight = header ? header.offsetHeight : 0;
-                      const elementPosition = bookingSection.getBoundingClientRect().top + window.pageYOffset;
-                      window.scrollTo({
-                        top: elementPosition - headerHeight,
-                        behavior: 'smooth'
-                      });
-                    }
-                  }} 
-                  className="text-royal-purple font-medium hover:underline focus:outline-none"
-                >
-                  Book your drop-in session today.
-                </button>
-              </p>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              className="bg-cultured p-8 rounded-lg shadow-md max-w-lg w-full"
-            >
-              <h3 className="text-2xl font-bold mb-4 text-center">Private Sessions</h3>
-              <h4 className="text-xl text-royal-purple mb-4 text-center italic">Transform Your Practice, Transform Your Life</h4>
-              <p className="text-base mb-4">
-                Discover the power of personalized attention in your yoga journey. Our private sessions are
-                tailored exclusively to your body, goals, and schedule—no cookie-cutter sequences, no
-                distractions, just pure, focused growth.
-              </p>
-              <p className="text-base mb-4">
-                Whether you're touching your toes for the first time or continuing your practice, our session
-                meets exactly where you are. Unlock your full potential in a supportive space where every
-                breath, every movement, and every moment are designed just for you.
-              </p>
-              <p className="text-base mb-4">
-                Your personal transformation begins here. <button 
-                  onClick={() => {
-                    const locationSection = document.getElementById('location-section');
-                    if (locationSection) {
-                      // Calculate header height to account for fixed header
-                      const header = document.querySelector('header');
-                      const headerHeight = header ? header.offsetHeight : 0;
-                      const elementPosition = locationSection.getBoundingClientRect().top + window.pageYOffset;
-                      window.scrollTo({
-                        top: elementPosition - headerHeight,
-                        behavior: 'smooth'
-                      });
-                    }
-                  }}
-                  className="text-royal-purple font-medium hover:underline focus:outline-none"
-                >
-                  Book your private session today.
-                </button>
-              </p>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="bg-cultured p-8 rounded-lg shadow-md max-w-lg w-full"
-            >
-              <h3 className="text-2xl font-bold mb-4 text-center">Online Sessions</h3>
-              <h4 className="text-xl text-royal-purple mb-4 text-center italic">Yoga Anywhere, Anytime: Your Practice, Your Space</h4>
-              <p className="text-base mb-4">
-                Transform any corner of your home into a sanctuary of strength and serenity with our online
-                yoga sessions. I'll be guiding your practice in real-time, delivering personalized attention
-                through your screen as if they were right beside you.
-              </p>
-              <p className="text-base mb-4">
-                No commute, no crowded studios—just authentic yoga that fits your schedule, your level, and
-                your goals. Whether you're a curious beginner or dedicated practitioner, our virtual sessions
-                deliver the perfect balance of challenge and support.
-              </p>
-              <p className="text-base mb-4">
-                Roll out your mat, click connect, and discover the freedom of practicing exactly how and when you need it most. <button 
-                  onClick={() => document.getElementById('location-section').scrollIntoView({ behavior: 'smooth' })}
-                  className="text-royal-purple font-medium hover:underline focus:outline-none"
-                >
-                  Book your online session today.
-                </button>
-              </p>
-            </motion.div>
-          </div>
         </div>
       </section>
 
@@ -1058,60 +1091,53 @@ export default function Home() {
                 )}
               </AnimatePresence>
             </div>
-            <div className="relative mb-4">
-              <DatePicker
-                selected={startDate}
-                onChange={(date) => {
-                  handleDateChange(date);
-                  handleInputFocus('date');
-                }}
-                minDate={new Date()}
-                filterDate={isWeekday}
-                dateFormat="MMMM d, yyyy"
-                className={`w-full p-3 rounded-lg border transition-colors ${
-                  dateError ? 'border-red-400 border-2' : 'border-gray-300'
-                }`}
-                placeholderText="Select a date"
-                calendarClassName="bg-white shadow-lg rounded-lg"
-                showPopperArrow={false}
-                wrapperClassName="w-full"
-                onFocus={() => handleInputFocus('date')}
-                onClick={() => handleInputFocus('date')}
-                readOnly={isMobile}
-                shouldCloseOnSelect={true}
-                disabledKeyboardNavigation={isMobile}
-                closeOnScroll={false}
-                useWeekdaysShort={true}
-                popperModifiers={{
-                  preventOverflow: {
-                    enabled: true,
-                    escapeWithReference: false,
-                    boundariesElement: 'viewport'
-                  }
-                }}
-                popperPlacement="bottom-start"
-                popperProps={{
-                  positionFixed: true
-                }}
-              />
-              <AnimatePresence>
-                {dateError && (
-                  <motion.div
-                    initial={{ scale: 0, rotate: -180 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    className="absolute top-1/2 -right-12 transform -translate-y-1/2"
-                  >
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M12 2C12 2 14 6 14 8C14 9.1 13.1 10 12 10C10.9 10 10 9.1 10 8C10 6 12 2 12 2Z" fill="#FF69B4"/>
-                      <path d="M12 2C12 2 15 5 16 7C16.7 8.4 16.1 10 14.8 10.6C13.5 11.2 12 10.5 11.4 9.2C10.8 7.9 12 2 12 2Z" fill="#FF1493"/>
-                      <path d="M12 2C12 2 9 5 8 7C7.3 8.4 7.9 10 9.2 10.6C10.5 11.2 12 10.5 12.6 9.2C13.2 7.9 12 2 12 2Z" fill="#FF69B4"/>
-                      <path d="M12 2C12 2 16 7 17 9C17.7 10.4 17.1 12 15.8 12.6C14.5 13.2 13 12.5 12.4 11.2C11.8 9.9 12 2 12 2Z" fill="#FF1493"/>
-                      <path d="M12 2C12 2 8 7 7 9C6.3 10.4 6.9 12 8.2 12.6C9.5 13.2 11 12.5 11.6 11.2C12.2 9.9 12 2 12 2Z" fill="#FF69B4"/>
-                      <circle cx="12" cy="8" r="2" fill="#FFD700"/>
-                    </svg>
-                  </motion.div>
+            <div className="mb-6">
+              <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-1">
+                Date
+              </label>
+              <div className={`relative mobile-date-picker-wrapper ${isMobile ? 'mobile-form' : ''}`}>
+                <DatePicker
+                  selected={startDate}
+                  onChange={handleDateChange}
+                  dateFormat="MMMM d, yyyy"
+                  minDate={new Date()}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-royal-purple"
+                  placeholderText="Select a date"
+                  required
+                  readOnly={isMobile}
+                  inputMode="none"
+                  autoComplete="off"
+                  disabledKeyboardNavigation={isMobile}
+                  popperClassName={isMobile ? 'mobile-date-popper' : ''}
+                  onFocus={(e) => {
+                    if (isMobile) {
+                      // Prevent keyboard from showing on mobile
+                      e.target.blur();
+                      setTimeout(() => {
+                        e.target.click();
+                      }, 100);
+                    }
+                  }}
+                  onTouchStart={(e) => {
+                    if (isMobile) {
+                      e.preventDefault();
+                      e.target.click();
+                    }
+                  }}
+                />
+                {isMobile && (
+                  <div 
+                    className="absolute inset-0 z-10" 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      const input = e.currentTarget.previousSibling;
+                      if (input) {
+                        input.click();
+                      }
+                    }}
+                  />
                 )}
-              </AnimatePresence>
+              </div>
             </div>
             <div className="relative mb-4">
               <select 
