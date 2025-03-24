@@ -243,7 +243,25 @@ const LayoutWithHeader = ({ children }) => {
                 ].map((item) => (
                   <motion.button
                     key={item.id}
-                    onClick={() => scrollToSection(item.id)}
+                    onClick={() => {
+                      const element = document.getElementById(item.id);
+                      if (element) {
+                        // Close menu
+                        setIsOpen(false);
+                        // Set active section immediately
+                        setActiveSection(item.id);
+                        // Calculate scroll position
+                        const headerHeight = headerRef.current ? headerRef.current.offsetHeight : 0;
+                        const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
+                        // Small delay to allow menu to start closing
+                        setTimeout(() => {
+                          window.scrollTo({
+                            top: elementPosition - headerHeight,
+                            behavior: 'smooth'
+                          });
+                        }, 50);
+                      }
+                    }}
                     whileTap={{ scale: 0.98, backgroundColor: "rgba(147, 112, 219, 0.1)" }}
                     className={`block w-full py-3 px-4 text-left rounded-lg text-lg flex items-center ${
                       activeSection === item.id 

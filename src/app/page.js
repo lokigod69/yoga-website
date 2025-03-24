@@ -85,6 +85,32 @@ export default function Home() {
   const [isContactSubmitting, setIsContactSubmitting] = React.useState(false);
   const [showContactThankYou, setShowContactThankYou] = React.useState(false);
 
+  // Scroll to top on page refresh
+  React.useEffect(() => {
+    // This will handle both page load and refresh
+    window.scrollTo(0, 0);
+    
+    // Also register for the beforeunload event to ensure scroll position is reset
+    const handleBeforeUnload = () => {
+      // Store a flag in sessionStorage to indicate a page refresh is happening
+      sessionStorage.setItem('page_refreshing', 'true');
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    // Check if this is a reload/refresh
+    if (sessionStorage.getItem('page_refreshing') === 'true') {
+      // Clear the flag
+      sessionStorage.removeItem('page_refreshing');
+      // Ensure we're at the top
+      window.scrollTo(0, 0);
+    }
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+
   // Detect mobile devices
   React.useEffect(() => {
     const checkMobile = () => {
@@ -111,9 +137,13 @@ export default function Home() {
       const inputs = document.querySelectorAll('input, select');
       inputs.forEach(input => {
         input.addEventListener('touchend', (e) => {
-          // Don't prevent default for date picker to allow it to open
-          if (!input.classList.contains('react-datepicker__input-container') && 
-              !input.classList.contains('react-datepicker-ignore-onclickoutside')) {
+          // Make exception for date picker to let its native behavior work
+          if (input.closest('.react-datepicker-wrapper')) {
+            return;
+          }
+          
+          // Don't prevent default for other inputs to keep their behavior
+          if (!input.classList.contains('react-datepicker-ignore-onclickoutside')) {
             e.preventDefault();
           }
           input.focus();
@@ -126,46 +156,25 @@ export default function Home() {
         }, { passive: false });
       });
       
-      // Fix for date picker on mobile
+      // Ensure date picker closes when a date is selected
       const fixDatePickerOnMobile = () => {
-        const datePickerInput = document.querySelector('.react-datepicker__input-container input');
-        if (datePickerInput) {
-          // Make sure single tap works
-          datePickerInput.addEventListener('touchend', (e) => {
-            // Prevent default only if needed to avoid blocking the date picker from opening
-            if (document.activeElement !== e.target) {
-              e.preventDefault();
-              e.target.focus();
-              // Trigger click to open the date picker with a single tap
+        const datePickerContainer = document.querySelector('.react-datepicker');
+        if (datePickerContainer) {
+          datePickerContainer.addEventListener('touchend', (e) => {
+            if (e.target.classList.contains('react-datepicker__day--selected') || 
+                e.target.classList.contains('react-datepicker__day')) {
+              // Move focus to the next field after selecting a date
               setTimeout(() => {
-                if (document.activeElement === e.target) {
-                  e.target.click();
+                const timeSelect = document.querySelector('select[name="time"]');
+                if (timeSelect) {
+                  timeSelect.focus();
                 }
-              }, 50);
+              }, 100);
             }
-          }, { passive: false });
+          }, { passive: true });
           
-          // Ensure date picker closes when a date is selected
-          const datePickerContainer = document.querySelector('.react-datepicker');
-          if (datePickerContainer) {
-            datePickerContainer.addEventListener('touchend', (e) => {
-              if (e.target.classList.contains('react-datepicker__day--selected') || 
-                  e.target.classList.contains('react-datepicker__day')) {
-                // Force close the date picker and move focus to the next field
-                setTimeout(() => {
-                  datePickerInput.blur();
-                  // Find the time select element and focus it
-                  const timeSelect = document.querySelector('select[name="time"]');
-                  if (timeSelect) {
-                    timeSelect.focus();
-                  }
-                }, 100);
-              }
-            }, { passive: true });
-            
-            // Improve date picker styling for mobile
-            datePickerContainer.classList.add('mobile-date-picker');
-          }
+          // Improve date picker styling for mobile
+          datePickerContainer.classList.add('mobile-date-picker');
         }
       };
       
@@ -327,12 +336,12 @@ export default function Home() {
     if (!startDate) {
       setDateError(true);
       hasError = true;
-      if (!firstErrorField) firstErrorField = '.react-datepicker-wrapper input';
+      if (!firstErrorField) firstErrorField = '.react-datepicker-wrapper';
     }
     if (!selectedTime) {
       setTimeError(true);
       hasError = true;
-      if (!firstErrorField) firstErrorField = 'select[value="' + selectedTime + '"]';
+      if (!firstErrorField) firstErrorField = 'select[name="time"]';
     }
     if (!numberOfPeople) {
       setNumberOfPeopleError(true);
@@ -346,8 +355,23 @@ export default function Home() {
       if (element) {
         // Wait a moment for error states to update in the DOM
         setTimeout(() => {
-          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          setTimeout(() => element.focus(), 500);
+          // Calculate header height to account for fixed header
+          const header = document.querySelector('header');
+          const headerHeight = header ? header.offsetHeight : 0;
+          const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
+          
+          window.scrollTo({
+            top: elementPosition - headerHeight - 20, // Add extra space
+            behavior: 'smooth'
+          });
+          
+          // Add a visual indicator by adding a class that will flash the element
+          element.classList.add('error-flash');
+          setTimeout(() => {
+            element.classList.remove('error-flash');
+            // Focus on the element after the flash animation
+            setTimeout(() => element.focus(), 100);
+          }, 1000);
         }, 100);
         return; // Stop form submission
       }
@@ -517,15 +541,15 @@ export default function Home() {
               padding: 0.5rem;
               margin: 0.2rem;
               line-height: 1;
-              width: 2rem;
-              height: 2rem;
+              width: 2.5rem;
+              height: 2.5rem;
               display: inline-flex;
               align-items: center;
               justify-content: center;
             }
             
             .mobile-date-picker .react-datepicker__day-name {
-              width: 2rem;
+              width: 2.5rem;
               margin: 0.2rem;
             }
             
@@ -537,6 +561,12 @@ export default function Home() {
               top: 1rem;
             }
             
+            /* Make date picker more tappable on mobile */
+            .react-datepicker__input-container input {
+              -webkit-tap-highlight-color: rgba(147, 112, 219, 0.1);
+              cursor: pointer;
+            }
+            
             /* Improve form spacing on mobile */
             form .mb-4 {
               margin-bottom: 1.5rem;
@@ -545,6 +575,22 @@ export default function Home() {
             /* Ensure buttons have proper touch targets */
             button {
               transition: transform 0.2s, opacity 0.2s;
+            }
+            
+            /* Error flash animation for form fields */
+            @keyframes error-flash {
+              0%, 100% { border-color: #f87171; }
+              50% { border-color: #ef4444; box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1); }
+            }
+            
+            .error-flash {
+              animation: error-flash 0.6s ease-in-out 3;
+              border: 2px solid #f87171 !important;
+            }
+            
+            /* Better error handling on mobile */
+            .border-red-400 {
+              border-width: 2px !important;
             }
           }
         `}</style>
@@ -893,7 +939,7 @@ export default function Home() {
                   <motion.div
                     initial={{ scale: 0, rotate: -180 }}
                     animate={{ scale: 1, rotate: 0 }}
-                    className="absolute top-1/2 -right-12 transform -translate-y-1/2"
+                    className="absolute top-1/2 -right-12 transform -translate-y-1/2 md:block hidden"
                   >
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M12 2C12 2 14 6 14 8C14 9.1 13.1 10 12 10C10.9 10 10 9.1 10 8C10 6 12 2 12 2Z" fill="#FF69B4"/>
@@ -906,6 +952,11 @@ export default function Home() {
                   </motion.div>
                 )}
               </AnimatePresence>
+              {nameError && (
+                <div className="text-red-500 text-xs mt-1 md:hidden block">
+                  Please enter your name
+                </div>
+              )}
             </div>
             <div className="relative mb-4">
               <input 
@@ -924,7 +975,7 @@ export default function Home() {
                   <motion.div
                     initial={{ scale: 0, rotate: -180 }}
                     animate={{ scale: 1, rotate: 0 }}
-                    className="absolute top-1/2 -right-12 transform -translate-y-1/2"
+                    className="absolute top-1/2 -right-12 transform -translate-y-1/2 md:block hidden"
                   >
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M12 2C12 2 14 6 14 8C14 9.1 13.1 10 12 10C10.9 10 10 9.1 10 8C10 6 12 2 12 2Z" fill="#FF69B4"/>
@@ -937,6 +988,11 @@ export default function Home() {
                   </motion.div>
                 )}
               </AnimatePresence>
+              {emailError && (
+                <div className="text-red-500 text-xs mt-1 md:hidden block">
+                  Please enter your email
+                </div>
+              )}
             </div>
             <div className="relative mb-4">
               <DatePicker
@@ -944,14 +1000,6 @@ export default function Home() {
                 onChange={(date) => {
                   handleDateChange(date);
                   handleInputFocus('date');
-                  // Close calendar and move focus on mobile
-                  if (isMobile && date) {
-                    setTimeout(() => {
-                    document.activeElement.blur();
-                      const timeSelect = document.querySelector('select[name="time"]');
-                      if (timeSelect) timeSelect.focus();
-                    }, 100);
-                  }
                 }}
                 minDate={new Date()}
                 filterDate={isWeekday}
@@ -965,9 +1013,7 @@ export default function Home() {
                 wrapperClassName="w-full"
                 onFocus={() => handleInputFocus('date')}
                 onClick={() => handleInputFocus('date')}
-                readOnly={isMobile}
                 shouldCloseOnSelect={true}
-                disabledKeyboardNavigation={isMobile}
                 closeOnScroll={true}
                 useWeekdaysShort={true}
               />
@@ -976,7 +1022,7 @@ export default function Home() {
                   <motion.div
                     initial={{ scale: 0, rotate: -180 }}
                     animate={{ scale: 1, rotate: 0 }}
-                    className="absolute top-1/2 -right-12 transform -translate-y-1/2"
+                    className="absolute top-1/2 -right-12 transform -translate-y-1/2 md:block hidden"
                   >
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M12 2C12 2 14 6 14 8C14 9.1 13.1 10 12 10C10.9 10 10 9.1 10 8C10 6 12 2 12 2Z" fill="#FF69B4"/>
@@ -989,6 +1035,11 @@ export default function Home() {
                   </motion.div>
                 )}
               </AnimatePresence>
+              {dateError && (
+                <div className="text-red-500 text-xs mt-1 md:hidden block">
+                  Please select a date
+                </div>
+              )}
             </div>
             <div className="relative mb-4">
               <select 
@@ -1002,6 +1053,7 @@ export default function Home() {
                 onClick={() => handleInputFocus('time')}
                 onTouchStart={() => handleInputFocus('time')}
                 value={selectedTime}
+                name="time"
                 style={{ backgroundColor: 'transparent' }}
               >
                 <option value="">Select Time</option>
@@ -1013,7 +1065,7 @@ export default function Home() {
                   <motion.div
                     initial={{ scale: 0, rotate: -180 }}
                     animate={{ scale: 1, rotate: 0 }}
-                    className="absolute top-1/2 -right-12 transform -translate-y-1/2"
+                    className="absolute top-1/2 -right-12 transform -translate-y-1/2 md:block hidden"
                   >
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M12 2C12 2 14 6 14 8C14 9.1 13.1 10 12 10C10.9 10 10 9.1 10 8C10 6 12 2 12 2Z" fill="#FF69B4"/>
@@ -1026,6 +1078,11 @@ export default function Home() {
                   </motion.div>
                 )}
               </AnimatePresence>
+              {timeError && (
+                <div className="text-red-500 text-xs mt-1 md:hidden block">
+                  Please select a time
+                </div>
+              )}
             </div>
             <div className="relative mb-4">
               <select 
@@ -1054,7 +1111,7 @@ export default function Home() {
                   <motion.div
                     initial={{ scale: 0, rotate: -180 }}
                     animate={{ scale: 1, rotate: 0 }}
-                    className="absolute top-1/2 -right-12 transform -translate-y-1/2"
+                    className="absolute top-1/2 -right-12 transform -translate-y-1/2 md:block hidden"
                   >
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M12 2C12 2 14 6 14 8C14 9.1 13.1 10 12 10C10.9 10 10 9.1 10 8C10 6 12 2 12 2Z" fill="#FF69B4"/>
@@ -1067,6 +1124,11 @@ export default function Home() {
                   </motion.div>
                 )}
               </AnimatePresence>
+              {numberOfPeopleError && (
+                <div className="text-red-500 text-xs mt-1 md:hidden block">
+                  Please select number of people
+                </div>
+              )}
             </div>
             <button 
               type="submit" 
