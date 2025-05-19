@@ -349,18 +349,27 @@ export default function Home() {
       }
       
       // Fix submit button to ensure it works with a single click
-      const submitButton = document.querySelector('button[type="submit"]');
+      const submitButton = document.querySelector('form button[type="submit"]'); // Make selector more specific
       if (submitButton) {
-        submitButton.addEventListener('touchend', (e) => {
+        const form = submitButton.closest('form'); // Get form here
+
+        const touchendListener = (e) => {
           // Prevent ghost clicks and unintended double-tap
           e.preventDefault();
           
-          // Submit the form immediately on first tap
-          const form = submitButton.closest('form');
-          if (form && !isSubmitting) {
-            form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+          // Submit the form immediately on first tap by clicking the button
+          // Ensure isSubmitting is checked from the component's state
+          if (!isSubmitting) { 
+            submitButton.click();
           }
-        }, { passive: false });
+        };
+
+        submitButton.addEventListener('touchend', touchendListener, { passive: false });
+        
+        // Add cleanup for this specific listener
+        return () => {
+          submitButton.removeEventListener('touchend', touchendListener);
+        };
       }
       
       // Ensure validation errors are visible on mobile
@@ -399,28 +408,25 @@ export default function Home() {
         document.removeEventListener('touchstart', () => {});
         const inputs = document.querySelectorAll('input, select');
         inputs.forEach(input => {
-          input.removeEventListener('touchend', () => {});
+          // Assuming the touchend listener for inputs was generic and needs to be removed by its function reference if it was named
+          // For now, this might not remove specific named touchend listeners on inputs if they were added elsewhere.
+          // Consider naming input touchend listeners if they need individual removal.
         });
         
-        const buttons = document.querySelectorAll('button');
+        const buttons = document.querySelectorAll('button:not([type="submit"])'); // Exclude submit button as its listener is handled above
         buttons.forEach(button => {
-          button.removeEventListener('touchstart', () => {});
-          button.removeEventListener('touchend', () => {});
-          button.removeEventListener('touchcancel', () => {});
+          // Assuming generic listeners, if named ones were added, they'd need specific removal
         });
         
         const datePickerInput = document.querySelector('.react-datepicker-wrapper input');
         if (datePickerInput) {
-          datePickerInput.removeEventListener('touchend', () => {});
+          // Assuming generic touchend, if named, needs specific removal
         }
         
-        const submitButton = document.querySelector('button[type="submit"]');
-        if (submitButton) {
-          submitButton.removeEventListener('touchend', () => {});
-        }
+        // The submit button's touchend listener is cleaned up by its own returned function if it was added
       }
     };
-  }, [isMobile, selectedTime, isSubmitting]);
+  }, [isMobile, isSubmitting]); // Added isSubmitting to dependencies for the touchendListener
 
   const isWeekday = (date) => {
     const day = date.getDay();

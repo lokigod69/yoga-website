@@ -112,7 +112,7 @@ export async function POST(request) {
             <p><strong>Location:</strong> Eagles Nest, Biking, Dauis, Bohol</p>
             <p><strong>Number of People:</strong> ${numberOfPeople}</p>
           </div>
-          <p>Please arrive 10 minutes before the session starts, wear comfortable clothing, and bring your own mat if you have one.</p>
+          <p>We are looking forward to having you in our yoga practice.</p>
           <p>If you need to cancel or reschedule, please contact us at least 24 hours in advance.</p>
           <div style="text-align: center; margin-top: 30px;">
             <p style="color: #9370DB; font-style: italic;">Namaste 🙏</p>
