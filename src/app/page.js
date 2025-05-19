@@ -86,6 +86,11 @@ export default function Home() {
   const [contactMessage, setContactMessage] = React.useState('');
   const [isContactSubmitting, setIsContactSubmitting] = React.useState(false);
   const [showContactThankYou, setShowContactThankYou] = React.useState(false);
+  // New error states for contact form
+  const [contactNameError, setContactNameError] = React.useState(false);
+  const [contactEmailError, setContactEmailError] = React.useState(false);
+  const [contactSessionTypeError, setContactSessionTypeError] = React.useState(false);
+  const [contactMessageError, setContactMessageError] = React.useState(false);
 
   const handleSmoothScroll = (event, targetId, accountForHeader = true) => {
     event.preventDefault(); // Prevent default anchor behavior
@@ -207,28 +212,31 @@ export default function Home() {
       
       // Fix for iOS devices where focus is not properly triggered
       const inputs = document.querySelectorAll('input, select');
+      const inputTouchendListeners = []; // Store listeners for cleanup
+
       inputs.forEach(input => {
-        input.addEventListener('touchend', (e) => {
-          // Make exception for date picker to let its native behavior work
+        const listener = (e) => {
           if (input.closest('.react-datepicker-wrapper')) {
-            return;
+            return; // Let date picker handle its own touch events
           }
           
-          // Don't prevent default for other inputs to keep their behavior
-          if (!input.classList.contains('react-datepicker-ignore-onclickoutside')) {
-            e.preventDefault();
-          }
-          input.focus();
+          // CRITICAL CHANGE: Avoid e.preventDefault() unless absolutely necessary for a specific fix.
+          // For general input focus on touchend, preventDefault is usually not needed and can block clicks.
+          // If a specific input type needs it for a specific bug, conditionalize it heavily.
+          // e.preventDefault(); // REMOVED THIS LINE
+
+          input.focus(); // Try focusing directly
           
-          // Add visual feedback for touch
           input.classList.add('touch-highlight');
           setTimeout(() => {
             input.classList.remove('touch-highlight');
           }, 300);
-        }, { passive: false });
+        };
+        input.addEventListener('touchend', listener, { passive: false }); // Still false if focus needs it
+        inputTouchendListeners.push({ element: input, listener });
       });
       
-      // Fix date picker on mobile - ensure single click works
+      // Fix date picker on mobile - ensure single click works (This section seems more targeted and might be okay)
       const fixDatePickerOnMobile = () => {
         // Handle date picker input field
         const datePickerInput = document.querySelector('.date-picker-container input');
@@ -403,14 +411,12 @@ export default function Home() {
       });
     }
     
+    // Cleanup for listeners added in this effect
     return () => {
       if (isMobile) {
-        document.removeEventListener('touchstart', () => {});
-        const inputs = document.querySelectorAll('input, select');
-        inputs.forEach(input => {
-          // Assuming the touchend listener for inputs was generic and needs to be removed by its function reference if it was named
-          // For now, this might not remove specific named touchend listeners on inputs if they were added elsewhere.
-          // Consider naming input touchend listeners if they need individual removal.
+        // document.removeEventListener('touchstart', () => {}); // If re-enabled above, add removal
+        inputTouchendListeners.forEach(item => {
+          item.element.removeEventListener('touchend', item.listener);
         });
         
         const buttons = document.querySelectorAll('button:not([type="submit"])'); // Exclude submit button as its listener is handled above
@@ -494,6 +500,11 @@ export default function Home() {
     if (field === 'day') setDayError(false);
     if (field === 'time') setTimeError(false);
     if (field === 'numberOfPeople') setNumberOfPeopleError(false);
+    // Clear contact form errors on focus
+    if (field === 'contactName') setContactNameError(false);
+    if (field === 'contactEmail') setContactEmailError(false);
+    if (field === 'contactSessionType') setContactSessionTypeError(false);
+    if (field === 'contactMessage') setContactMessageError(false);
   };
 
   const handleBookingSubmit = async (e) => {
@@ -616,26 +627,76 @@ export default function Home() {
   const handleContactSubmit = async (e) => {
     e.preventDefault();
     
-    // Simple validation
-    if (!contactName || !contactEmail || !contactSessionType || !contactMessage) {
-      alert('Please fill out all fields');
-      return;
+    // Reset all error states for contact form
+    setContactNameError(false);
+    setContactEmailError(false);
+    setContactSessionTypeError(false);
+    setContactMessageError(false);
+
+    let hasError = false;
+    let firstErrorField = null;
+
+    // Validate contact form fields
+    if (!contactName.trim()) {
+      setContactNameError(true);
+      hasError = true;
+      if (!firstErrorField) firstErrorField = 'form[onSubmit={handleContactSubmit}] input[placeholder="Your Name"]';
+    }
+    if (!contactEmail.trim() || !/\S+@\S+\.\S+/.test(contactEmail)) { // Basic email format check
+      setContactEmailError(true);
+      hasError = true;
+      if (!firstErrorField) firstErrorField = 'form[onSubmit={handleContactSubmit}] input[placeholder="Your Email"]';
+    }
+    if (!contactSessionType) {
+      setContactSessionTypeError(true);
+      hasError = true;
+      if (!firstErrorField) firstErrorField = 'form[onSubmit={handleContactSubmit}] select'; // Assuming only one select in this form
+    }
+    if (!contactMessage.trim()) {
+      setContactMessageError(true);
+      hasError = true;
+      if (!firstErrorField) firstErrorField = 'form[onSubmit={handleContactSubmit}] textarea[placeholder="Your Message"]';
+    }
+
+    // Scroll to the first error field on mobile for contact form
+    if (hasError && isMobile && firstErrorField) {
+      const element = document.querySelector(firstErrorField);
+      if (element) {
+        setTimeout(() => {
+          const header = document.querySelector('header');
+          const headerHeight = header ? header.offsetHeight : 0;
+          const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
+          window.scrollTo({
+            top: elementPosition - headerHeight - 20, 
+            behavior: 'smooth'
+          });
+          element.classList.add('error-flash');
+          setTimeout(() => {
+            element.classList.remove('error-flash');
+            setTimeout(() => element.focus(), 100);
+          }, 1000);
+        }, 100);
+        return; // Stop form submission
+      }
+    } else if (hasError) { // For desktop, or if element not found, just stop.
+        // Optionally, show a generic error message or rely on field highlighting
+        return; 
     }
     
+    // Only proceed if no errors
     setIsContactSubmitting(true);
     
     try {
-      // Use the same endpoint as booking form
       const response = await fetch('/api/send-email', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name: contactName,
-          email: contactEmail,
-          subject: `Contact Form: ${contactSessionType} Session Request`,
-          message: contactMessage,
+          contactName: contactName,       // Explicitly use contactName
+          contactEmail: contactEmail,     // Explicitly use contactEmail
+          contactSessionType: contactSessionType, // Send contactSessionType
+          contactMessage: contactMessage,   // Explicitly use contactMessage
           isContactForm: true // Flag to identify this is from contact form
         }),
       });
@@ -858,28 +919,14 @@ export default function Home() {
               </div>
             </div>
             <p className="text-lg md:text-xl mb-8">Join us for transformative classes and inner peace.</p>
-            <button 
-              onClick={(e) => {
-                e.preventDefault(); // Prevent any default behavior
-                const bookingSection = document.getElementById('booking-section');
-                if (bookingSection) {
-                  // Calculate header height to account for fixed header
-                  const header = document.querySelector('header');
-                  const headerHeight = header ? header.offsetHeight : 0;
-                  const elementPosition = bookingSection.getBoundingClientRect().top + window.pageYOffset;
-                  
-                  // Scroll with offset to position the section properly at the top
-                  window.scrollTo({
-                    top: elementPosition - headerHeight - 20, // Add extra offset for better positioning
-                    behavior: 'smooth'
-                  });
-                }
-              }} 
-              className="bg-royal-purple text-white px-6 py-3 rounded-full hover:bg-lilac transition duration-300"
+            <a 
+              href="#booking-section"
+              onClick={(e) => handleSmoothScroll(e, 'booking-section', true)} 
+              className="bg-royal-purple text-white px-6 py-3 rounded-full hover:bg-lilac transition duration-300 cursor-pointer"
               style={{ minHeight: isMobile ? '50px' : 'auto', minWidth: isMobile ? '160px' : 'auto' }}
             >
               Book Now
-            </button>
+            </a>
           </motion.div>
         </div>
       </section>
@@ -1023,24 +1070,13 @@ export default function Home() {
               <p className="text-lg mb-2 text-center">10:00 - 11:00 AM<br/>5:00 - 6:00 PM</p>
               <p className="text-lg mb-4 text-center">@ 350 php</p>
               <p className="text-base text-center">
-                <button 
-                  onClick={() => {
-                    const bookingSection = document.getElementById('booking-section');
-                    if (bookingSection) {
-                      // Calculate header height to account for fixed header
-                      const header = document.querySelector('header');
-                      const headerHeight = header ? header.offsetHeight : 0;
-                      const elementPosition = bookingSection.getBoundingClientRect().top + window.pageYOffset;
-                      window.scrollTo({
-                        top: elementPosition - headerHeight,
-                        behavior: 'smooth'
-                      });
-                    }
-                  }} 
-                  className="text-royal-purple font-medium hover:underline focus:outline-none"
+                <a 
+                  href="#booking-section"
+                  onClick={(e) => handleSmoothScroll(e, 'booking-section', true)}
+                  className="text-royal-purple font-medium hover:underline focus:outline-none cursor-pointer"
                 >
                   Book your drop-in session today.
-                </button>
+                </a>
               </p>
             </motion.div>
 
@@ -1465,28 +1501,50 @@ export default function Home() {
           </motion.h2>
           <div className="max-w-md mx-auto mb-12">
             <form onSubmit={handleContactSubmit}>
-              <input 
-                type="text" 
-                placeholder="Your Name" 
-                className="w-full p-3 mb-4 rounded-lg border"
-                value={contactName}
-                onChange={(e) => setContactName(e.target.value)}
-                required
-              />
-              <input 
-                type="email" 
-                placeholder="Your Email" 
-                className="w-full p-3 mb-4 rounded-lg border"
-                value={contactEmail}
-                onChange={(e) => setContactEmail(e.target.value)}
-                required
-              />
+              <div className="relative mb-4">
+                <input 
+                  type="text" 
+                  placeholder="Your Name" 
+                  className={`w-full p-3 mb-4 rounded-lg border ${
+                    contactNameError ? 'border-red-400 border-2' : 'border-gray-300'
+                  }`}
+                  value={contactName}
+                  onChange={(e) => setContactName(e.target.value)}
+                  onFocus={() => handleInputFocus('contactName')}
+                  onClick={() => handleInputFocus('contactName')} // For mobile tap to clear error
+                  onTouchStart={() => handleInputFocus('contactName')} // For mobile touch to clear error
+                />
+                {contactNameError && (
+                  <p className="text-red-500 text-xs -mt-2 mb-2 md:hidden block">Please enter your name.</p>
+                )}
+              </div>
+              <div className="relative mb-4">
+                <input 
+                  type="email" 
+                  placeholder="Your Email" 
+                  className={`w-full p-3 mb-4 rounded-lg border ${
+                    contactEmailError ? 'border-red-400 border-2' : 'border-gray-300'
+                  }`}
+                  value={contactEmail}
+                  onChange={(e) => setContactEmail(e.target.value)}
+                  onFocus={() => handleInputFocus('contactEmail')}
+                  onClick={() => handleInputFocus('contactEmail')}
+                  onTouchStart={() => handleInputFocus('contactEmail')}
+                />
+                {contactEmailError && (
+                  <p className="text-red-500 text-xs -mt-2 mb-2 md:hidden block">Please enter a valid email.</p>
+                )}
+              </div>
               <div className="relative mb-4">
                 <select 
-                  className="w-full p-3 rounded-lg border appearance-none bg-white"
+                  className={`w-full p-3 rounded-lg border appearance-none bg-white ${
+                    contactSessionTypeError ? 'border-red-400 border-2' : 'border-gray-300'
+                  }`}
                   value={contactSessionType}
                   onChange={(e) => setContactSessionType(e.target.value)}
-                  required
+                  onFocus={() => handleInputFocus('contactSessionType')}
+                  onClick={() => handleInputFocus('contactSessionType')}
+                  onTouchStart={() => handleInputFocus('contactSessionType')}
                   style={{ 
                     backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23444' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E")`,
                     backgroundRepeat: 'no-repeat',
@@ -1499,14 +1557,26 @@ export default function Home() {
                   <option value="online">Online Session</option>
                   <option value="other">Other</option>
                 </select>
+                {contactSessionTypeError && (
+                  <p className="text-red-500 text-xs mt-1 mb-2 md:hidden block">Please select a session type.</p> // Adjusted margin for select
+                )}
               </div>
-              <textarea 
-                placeholder="Your Message" 
-                className="w-full p-3 mb-4 rounded-lg border h-32"
-                value={contactMessage}
-                onChange={(e) => setContactMessage(e.target.value)}
-                required
-              ></textarea>
+              <div className="relative mb-4">
+                <textarea 
+                  placeholder="Your Message" 
+                  className={`w-full p-3 mb-4 rounded-lg border h-32 ${
+                    contactMessageError ? 'border-red-400 border-2' : 'border-gray-300'
+                  }`}
+                  value={contactMessage}
+                  onChange={(e) => setContactMessage(e.target.value)}
+                  onFocus={() => handleInputFocus('contactMessage')}
+                  onClick={() => handleInputFocus('contactMessage')}
+                  onTouchStart={() => handleInputFocus('contactMessage')}
+                ></textarea>
+                {contactMessageError && (
+                  <p className="text-red-500 text-xs -mt-2 mb-2 md:hidden block">Please enter your message.</p>
+                )}
+              </div>
               <button 
                 type="submit" 
                 className="bg-royal-purple text-white px-6 py-3 rounded-full hover:bg-lilac transition duration-300 w-full"
