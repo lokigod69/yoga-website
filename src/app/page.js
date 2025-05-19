@@ -87,6 +87,27 @@ export default function Home() {
   const [isContactSubmitting, setIsContactSubmitting] = React.useState(false);
   const [showContactThankYou, setShowContactThankYou] = React.useState(false);
 
+  const handleSmoothScroll = (event, targetId, accountForHeader = true) => {
+    event.preventDefault(); // Prevent default anchor behavior
+    const targetElement = document.getElementById(targetId);
+    if (targetElement) {
+      let headerHeight = 0;
+      if (accountForHeader) {
+        const header = document.querySelector('header'); // Assuming header tag is used for the fixed header
+        if (header) {
+          headerHeight = header.offsetHeight;
+        }
+      }
+      const elementPosition = targetElement.getBoundingClientRect().top + window.pageYOffset;
+      const offsetPosition = elementPosition - headerHeight;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+    }
+  };
+
   // Generate available days (next 6 days excluding Sundays)
   React.useEffect(() => {
     const days = [];
@@ -1036,24 +1057,13 @@ export default function Home() {
                 breath, every movement, and every moment are designed just for you.
               </p>
               <p className="text-base mb-4">
-                Your personal transformation begins here. <button 
-                  onClick={() => {
-                    const locationSection = document.getElementById('location-section');
-                    if (locationSection) {
-                      // Calculate header height to account for fixed header
-                      const header = document.querySelector('header');
-                      const headerHeight = header ? header.offsetHeight : 0;
-                      const elementPosition = locationSection.getBoundingClientRect().top + window.pageYOffset;
-                      window.scrollTo({
-                        top: elementPosition - headerHeight,
-                        behavior: 'smooth'
-                      });
-                    }
-                  }}
-                  className="text-royal-purple font-medium hover:underline focus:outline-none"
+                Your personal transformation begins here. <a
+                  href="#location-section"
+                  onClick={(e) => handleSmoothScroll(e, 'location-section')}
+                  className="text-royal-purple font-medium hover:underline focus:outline-none cursor-pointer"
                 >
                   Book your private session today.
-                </button>
+                </a>
               </p>
             </motion.div>
 
@@ -1076,12 +1086,13 @@ export default function Home() {
                 deliver the perfect balance of challenge and support.
               </p>
               <p className="text-base mb-4">
-                Roll out your mat, click connect, and discover the freedom of practicing exactly how and when you need it most. <button 
-                  onClick={() => document.getElementById('location-section').scrollIntoView({ behavior: 'smooth' })}
-                  className="text-royal-purple font-medium hover:underline focus:outline-none"
+                Roll out your mat, click connect, and discover the freedom of practicing exactly how and when you need it most. <a
+                  href="#location-section"
+                  onClick={(e) => handleSmoothScroll(e, 'location-section')}
+                  className="text-royal-purple font-medium hover:underline focus:outline-none cursor-pointer"
                 >
                   Book your online session today.
-                </button>
+                </a>
               </p>
             </motion.div>
           </div>
@@ -1394,7 +1405,7 @@ export default function Home() {
           </motion.h2>
           <div className="flex justify-center gap-12">
             <a 
-              href="https://www.instagram.com/asan_yogarona/" 
+              href="https://www.instagram.com/yogarona.fit/" 
               target="_blank" 
               rel="noopener noreferrer" 
               className="hover:opacity-80 transition duration-300 flex flex-col items-center"

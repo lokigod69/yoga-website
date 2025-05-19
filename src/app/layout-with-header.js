@@ -287,42 +287,26 @@ const LayoutWithHeader = ({ children }) => {
                     onClick={() => {
                       const element = document.getElementById(item.id);
                       if (element) {
-                        // Close menu
-                        setIsOpen(false);
-                        // Set active section immediately
-                        setActiveSection(item.id);
-                        // Calculate scroll position
+                        setIsOpen(false); // Close menu first
+                        setActiveSection(item.id); // Set active section
+
+                        // Calculate scroll position with header offset
                         const headerHeight = headerRef.current ? headerRef.current.offsetHeight : 0;
                         const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
-                        // Small delay to allow menu to start closing
+                        
+                        let extraOffset = 0;
+                        if (item.id === 'booking-section') { // Check item.id here
+                          extraOffset = isMobile ? 20 : 0; // Apply extra offset only on mobile for booking
+                        }
+                        const targetScrollPosition = elementPosition - headerHeight - extraOffset;
+
+                        // Delay scroll slightly to allow menu to start closing animation
                         setTimeout(() => {
                           window.scrollTo({
-                            top: elementPosition - headerHeight,
+                            top: targetScrollPosition,
                             behavior: 'smooth'
                           });
-                        }, 50);
-                      }
-                    }}
-                    onTouchEnd={(e) => {
-                      // Prevent default to avoid double tap issues
-                      e.preventDefault();
-                      
-                      const element = document.getElementById(item.id);
-                      if (element) {
-                        // Close menu
-                        setIsOpen(false);
-                        // Set active section immediately
-                        setActiveSection(item.id);
-                        // Calculate scroll position
-                        const headerHeight = headerRef.current ? headerRef.current.offsetHeight : 0;
-                        const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
-                        // Small delay to allow menu to start closing
-                        setTimeout(() => {
-                          window.scrollTo({
-                            top: elementPosition - headerHeight,
-                            behavior: 'smooth'
-                          });
-                        }, 50);
+                        }, 50); // A small delay like 50ms is often enough
                       }
                     }}
                     style={{ WebkitTapHighlightColor: 'rgba(0,0,0,0)', touchAction: 'manipulation' }}

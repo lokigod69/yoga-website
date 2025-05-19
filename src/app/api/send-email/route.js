@@ -20,8 +20,8 @@ export async function POST(request) {
     // Check if this is a contact form submission
     if (contactName && contactEmail && contactMessage) {
       const mailOptions = {
-        from: process.env.EMAIL_USER || 'yoga-rona@gmail.com',
-        to: process.env.EMAIL_TO || 'yoga-rona@gmail.com',
+        from: process.env.EMAIL_USER || 'yogarona.fit@gmail.com',
+        to: process.env.EMAIL_TO || 'yogarona.fit@gmail.com',
         subject: `Yoga Website Contact: ${contactSessionType}`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
@@ -42,7 +42,7 @@ export async function POST(request) {
       
       // Send confirmation email to the customer
       const customerOptions = {
-        from: process.env.EMAIL_USER || 'yoga-rona@gmail.com',
+        from: process.env.EMAIL_USER || 'yogarona.fit@gmail.com',
         to: contactEmail,
         subject: 'Your inquiry has been received!',
         html: `
@@ -76,8 +76,8 @@ export async function POST(request) {
     
     // Send email to yourself (the studio owner)
     const mailOptions = {
-      from: process.env.EMAIL_USER || 'yoga-rona@gmail.com',
-      to: process.env.EMAIL_TO || 'yoga-rona@gmail.com',
+      from: process.env.EMAIL_USER || 'yogarona.fit@gmail.com',
+      to: process.env.EMAIL_TO || 'yogarona.fit@gmail.com',
       subject: `New Yoga Session Booking from ${name}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
@@ -98,7 +98,7 @@ export async function POST(request) {
     
     // Send confirmation email to the customer
     const customerOptions = {
-      from: process.env.EMAIL_USER || 'yoga-rona@gmail.com',
+      from: process.env.EMAIL_USER || 'yogarona.fit@gmail.com',
       to: email,
       subject: 'Your Yoga Session Booking is Confirmed!',
       html: `
